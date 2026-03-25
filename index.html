@@ -337,7 +337,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     <div class="qgrid">
       <div class="qf"><label>Data</label><input type="date" id="qDate"></div>
       <div class="qf"><label>Descrição</label><input type="text" id="qName" placeholder="Ex: iFood, Salário..."></div>
-      <div class="qf"><label>Valor R$</label><input type="number" id="qVal" step="0.01" min="0" placeholder="0,00" oninput="updateDivPreview()"></div>
+      <div class="qf"><label>Valor R$</label><input type="number" id="qVal" step="0.01" min="0" placeholder="0,00"></div>
       <div class="qf"><label>Categoria</label><select id="qCat"></select></div>
     </div>
     <!-- Meio de pagamento -->
@@ -368,12 +368,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
         <input type="checkbox" id="qParCheck" onchange="toggleParBox()">
         <label for="qParCheck">Parcelado no cartão?</label>
       </div>
-      <div class="par-toggle">
-        <input type="checkbox" id="qDivCheck" onchange="updateDivPreview()">
-        <label for="qDivCheck">Dividido ÷ 2?</label>
-      </div>
     </div>
-    <div id="divPreview" style="display:none;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--amber-text);margin-bottom:6px;"></div>
+    <div id="divPreview" style="display:none;"></div>
     <div class="par-box" id="parBox">
       <div class="qgrid2">
         <div class="qf"><label>Parcela atual (ex: 1)</label><input type="number" id="qPA" min="1" placeholder="1" oninput="calcEndMonth()"></div>
@@ -405,21 +401,21 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     </div>
   </div>
 
-  <div class="commit-wrap">
+  <div class="commit-wrap" id="dCommitWrap">
     <div class="commit-hd"><span id="cPctLabel">RENDA COMPROMETIDA</span><span id="cPct">0%</span></div>
     <div class="pbar"><div class="pfill" id="commitBar" style="width:0%;background:var(--green)"></div></div>
   </div>
-  <div class="sec-block">
+  <div class="sec-block" id="dIncBlock">
     <div class="sec-hd"><div class="sec-title st-inc">Renda</div><div class="sec-total" id="dIncT">R$ 0,00</div></div>
     <div class="ilist" id="dIncL"><div class="empty">nenhuma renda</div></div>
     <button class="btn-add-sec" onclick="openNew('salario','income')">+ adicionar renda</button>
   </div>
-  <div class="sec-block">
+  <div class="sec-block" id="dFixBlock">
     <div class="sec-hd"><div class="sec-title st-fix">Despesas fixas</div><div class="sec-total" id="dFixT">R$ 0,00</div></div>
     <div class="ilist" id="dFixL"><div class="empty">nenhuma despesa fixa</div></div>
     <button class="btn-add-sec" onclick="openNew('outros','fixed')">+ adicionar despesa fixa</button>
   </div>
-  <div class="sec-block">
+  <div class="sec-block" id="dCardBlock">
     <div class="sec-hd"><div class="sec-title st-card">Cartão de crédito</div><div class="sec-total" id="dCardT">R$ 0,00</div></div>
     <div class="ilist" id="dCardL"><div class="empty">nenhuma parcela</div></div>
     <button class="btn-add-sec" onclick="openNew('outros','card')">+ adicionar parcela</button>
@@ -914,13 +910,6 @@ function renderSummary(){
 }
 
 // ── QUICK ──────────────────────────────────────────────────────────────
-function updateDivPreview(){
-  const on=document.getElementById('qDivCheck').checked;
-  const v=parseFloat(document.getElementById('qVal').value);
-  const prev=document.getElementById('divPreview');
-  if(on&&!isNaN(v)&&v>0){prev.style.display='block';prev.textContent='Valor dividido: '+fmt(v/2)+' (metade de '+fmt(v)+')';}
-  else{prev.style.display='none';prev.textContent='';}
-}
 function toggleParBox(){
   const on=document.getElementById('qParCheck').checked;
   document.getElementById('parBox').classList.toggle('open',on);
@@ -952,8 +941,7 @@ function setDebtor(val,btn){
 function quickAdd(){
   const name=document.getElementById('qName').value.trim();
   const rawVal=parseFloat(document.getElementById('qVal').value);
-  const divOn=document.getElementById('qDivCheck').checked;
-  const value=divOn?parseFloat((rawVal/2).toFixed(2)):rawVal;
+  const value=rawVal;
   const cat=document.getElementById('qCat').value;
   const date=document.getElementById('qDate').value||todayStr();
   const parOn=document.getElementById('qParCheck').checked;
@@ -994,10 +982,8 @@ function quickAdd(){
   document.getElementById('qName').value='';
   document.getElementById('qVal').value='';
   document.getElementById('qParCheck').checked=false;
-  document.getElementById('qDivCheck').checked=false;
   document.getElementById('qPA').value='';document.getElementById('qPT').value='';
   document.getElementById('parInfo').textContent='';
-  document.getElementById('divPreview').style.display='none';
   toggleParBox();
   persist();renderAll();
   document.getElementById('qName').focus();
@@ -1046,7 +1032,14 @@ function setDebtorFilter(val,btn){
 function renderDetail(){
   const md=getMonth(viewY,viewM);
   const{inc,fix,card}=totalsFor(viewY,viewM);
-  const df=debtorFilter; // 'otavio','todos','amor','chirlei','mae','dividido'
+  const df=debtorFilter;
+
+  // Mostrar/esconder seções de renda, fixas e cartão
+  // Só aparecem no modo "todos" ou "meus gastos"
+  const showGlobal=df==='todos'||df==='otavio';
+  ['dIncBlock','dFixBlock','dCardBlock','dCommitWrap'].forEach(id=>{
+    document.getElementById(id).style.display=showGlobal?'':'none';
+  });
 
   // ── Income
   document.getElementById('dIncT').textContent=fmt(inc);
