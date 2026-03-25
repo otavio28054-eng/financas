@@ -6,48 +6,47 @@
 <title>Minhas Finanças</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<!-- Firebase Realtime Database -->
-<script>
-const FB_URL='https://app-financeiro-471b3-default-rtdb.firebaseio.com';
+<!-- Firebase -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import{getFirestore,doc,getDoc,setDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-window._cloud={
+const firebaseConfig={
+  apiKey:"AIzaSyAGyRIz7ZYBX6CIZ_gH9mpHvYgga6wY6dY",
+  authDomain:"app-financeiro-471b3.firebaseapp.com",
+  databaseURL:"https://app-financeiro-471b3-default-rtdb.firebaseio.com",
+  projectId:"app-financeiro-471b3",
+  storageBucket:"app-financeiro-471b3.firebasestorage.app",
+  messagingSenderId:"1095639403709",
+  appId:"1:1095639403709:web:037586a078e711b2b37bd4"
+};
+
+// We expose firebase to window so the rest of the script can use it
+let app,db,unsubscribe;
+try{
+  app=initializeApp(firebaseConfig);
+  db=getFirestore(app);
+}catch(e){console.warn('Firebase init error',e);}
+
+window._fb={
   async load(code){
+    if(!db)return null;
     try{
-      const r=await fetch(`${FB_URL}/users/${encodeURIComponent(code)}.json`);
-      if(!r.ok){console.warn('FB load status:',r.status);return null;}
-      const data=await r.json();
-      console.log('FB load result:',data?'dados encontrados':'vazio');
-      return data;
-    }catch(e){console.warn('FB load erro:',e);return null;}
+      const snap=await getDoc(doc(db,'users',code));
+      return snap.exists()?snap.data().payload:null;
+    }catch(e){console.warn(e);return null;}
   },
   async save(code,data){
-    try{
-      const r=await fetch(`${FB_URL}/users/${encodeURIComponent(code)}.json`,{
-        method:'PUT',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(data)
-      });
-      console.log('FB save status:',r.status,r.ok?'OK':'FALHOU');
-      return r.ok;
-    }catch(e){console.warn('FB save erro:',e);return false;}
+    if(!db)return;
+    try{await setDoc(doc(db,'users',code),{payload:data,updatedAt:Date.now()});}
+    catch(e){console.warn(e);}
   },
   listen(code,cb){
-    try{
-      if(window._fbSse){window._fbSse.close();}
-      const sse=new EventSource(`${FB_URL}/users/${encodeURIComponent(code)}.json`);
-      window._fbSse=sse;
-      let firstEvent=true;
-      sse.addEventListener('put',e=>{
-        try{
-          const msg=JSON.parse(e.data);
-          if(firstEvent){firstEvent=false;return;} // skip initial snapshot (already loaded)
-          if(msg&&msg.data&&msg.data.fixed){
-            console.log('FB realtime update recebido');
-            cb(msg.data);
-          }
-        }catch(err){}
-      });
-    }catch(e){console.warn('FB listen erro:',e);}
+    if(!db)return;
+    if(unsubscribe)unsubscribe();
+    unsubscribe=onSnapshot(doc(db,'users',code),snap=>{
+      if(snap.exists())cb(snap.data().payload);
+    });
   }
 };
 </script>
@@ -259,7 +258,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     <div class="login-sub">controle financeiro pessoal</div>
     <label class="login-label">Seu código de acesso</label>
     <input class="login-input" id="loginCode" type="text" maxlength="20" placeholder="ex: JOAO2025" autocomplete="off" spellcheck="false">
-    <div class="login-hint">Crie um código único só seu — ex: <strong style="color:var(--green-text)">JOAO2025</strong><br>Use o mesmo código em qualquer celular ou computador e seus dados aparecem automaticamente.<br><span style="color:var(--amber-text)">Guarde bem — quem tiver o mesmo código acessa os dados.</span></div>
+    <div class="login-hint">Digite qualquer código que só você conheça.<br>Ele é usado para acessar seus dados de qualquer dispositivo.<br><strong style="color:var(--amber-text)">Guarde bem — quem tiver o mesmo código acessa os dados.</strong></div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="loginErr"></div>
   </div>
@@ -378,7 +377,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     </div>
     <div class="ccrd">
       <div class="ctitle">Top categorias variáveis</div>
-      <div id="barWrap"></div>
+      <div id="barWrap" style="position:relative;width:100%;height:200px;"><canvas id="cBar"></canvas></div>
     </div>
     <div class="ccrd full">
       <div class="ctitle">Fluxo mensal — últimos 12 meses</div>
@@ -549,53 +548,31 @@ async function startApp(){
   document.getElementById('iMonth').value=mKey(todayDate.getFullYear(),todayDate.getMonth());
 
   setSyncStatus('saving');
-
-  // Firebase é a fonte da verdade — carregar dele primeiro
-  let cloud=null;
-  try{cloud=await window._cloud.load(userCode);}catch(e){}
-
-  if(cloud&&cloud.fixed){
-    // Dados encontrados no Firebase — usar esses
-    console.log('Dados carregados do Firebase');
-    D=cloud;
-    localStorage.setItem('fin_'+userCode,JSON.stringify(D));
-    setSyncStatus('ok');
-  } else {
-    // Sem dados no Firebase — tentar localStorage como fallback
-    console.log('Firebase vazio, tentando localStorage');
-    const local=localStorage.getItem('fin_'+userCode);
-    if(local){
-      try{
-        D=JSON.parse(local);
-        console.log('Dados carregados do localStorage');
-        // Fazer upload imediato do local para o Firebase
-        const ok=await window._cloud.save(userCode,D);
-        setSyncStatus(ok?'ok':'offline');
-      }catch(e){
-        D=seedData();
-        await window._cloud.save(userCode,D);
-        setSyncStatus('ok');
-      }
+  // Try to load from cloud
+  if(window._fb){
+    const cloud=await window._fb.load(userCode);
+    if(cloud){
+      D=cloud;
+      setSyncStatus('ok');
     } else {
-      // Primeira vez — criar dados iniciais
-      console.log('Primeiro acesso — criando dados iniciais');
+      // First time — seed data
       D=seedData();
-      const ok=await window._cloud.save(userCode,D);
-      setSyncStatus(ok?'ok':'offline');
+      cloudSave();
     }
-  }
-
-  renderAll();
-
-  // Escutar mudanças em tempo real (outros dispositivos)
-  window._cloud.listen(userCode,(payload)=>{
-    if(JSON.stringify(payload)!==JSON.stringify(D)){
+    // Listen for real-time changes from other devices
+    window._fb.listen(userCode,(payload)=>{
       D=payload;
-      localStorage.setItem('fin_'+userCode,JSON.stringify(D));
       renderAll();
-    }
-    setSyncStatus('ok');
-  });
+      setSyncStatus('ok');
+    });
+  } else {
+    // Offline fallback to localStorage
+    const local=localStorage.getItem('fin_'+userCode);
+    if(local)try{D=JSON.parse(local);}catch(e){D=seedData();}
+    else D=seedData();
+    setSyncStatus('offline');
+  }
+  renderAll();
 }
 
 function seedData(){
@@ -631,8 +608,6 @@ function seedData(){
 
 function logout(){
   if(!confirm('Sair da conta '+userCode+'?'))return;
-  // Close real-time listener
-  if(window._fbSse){window._fbSse.close();window._fbSse=null;}
   userCode='';
   localStorage.removeItem('fin_code');
   D={fixed:[],card:[],months:{},investments:[]};
@@ -653,42 +628,19 @@ function setSyncStatus(s){
 }
 
 function persist(){
-  if(!userCode){console.warn('persist chamado sem userCode');return;}
-  // 1. Salvar localmente de forma síncrona e imediata
+  // Local backup always
   localStorage.setItem('fin_'+userCode,JSON.stringify(D));
-  // 2. Salvar no Firebase imediatamente (sem delay)
+  // Debounced cloud save
   setSyncStatus('saving');
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(cloudSave,800); // pequeno debounce só para não sobrecarregar em edições rápidas
+  saveTimer=setTimeout(cloudSave,1200);
 }
 
 async function cloudSave(){
-  if(!userCode)return;
-  try{
-    const ok=await window._cloud.save(userCode,D);
-    if(ok){
-      setSyncStatus('ok');
-      console.log('Salvo no Firebase com sucesso');
-    } else {
-      setSyncStatus('offline');
-      console.warn('Firebase retornou erro ao salvar');
-    }
-  }catch(e){
-    setSyncStatus('offline');
-    console.warn('Erro ao salvar no Firebase:',e);
-  }
+  if(!window._fb||!userCode)return;
+  await window._fb.save(userCode,D);
+  setSyncStatus('ok');
 }
-
-// Garantir que salva antes de fechar/recarregar a página
-window.addEventListener('beforeunload',()=>{
-  if(userCode&&D){
-    // Salvar síncrono no localStorage (garantido mesmo no F5)
-    localStorage.setItem('fin_'+userCode,JSON.stringify(D));
-    // Tentar salvar no Firebase (best-effort, pode não completar)
-    clearTimeout(saveTimer);
-    window._cloud.save(userCode,D);
-  }
-});
 
 // Check saved code on load
 window.addEventListener('load',()=>{
@@ -1116,8 +1068,10 @@ function renderCharts(){
   // ── Bar — top variáveis (horizontal)
   const barWrap=document.getElementById('barWrap');
   if(srt.length>0){
-    const barH=Math.max(220,srt.length*46+70);
-    barWrap.innerHTML=`<div style="position:relative;width:100%;height:${barH}px"><canvas id="cBar"></canvas></div>`;
+    // height must accommodate all bars: at least 40px per bar + padding
+    const barH=Math.max(200,srt.length*44+60);
+    barWrap.style.height=barH+'px';
+    barWrap.innerHTML='<canvas id="cBar"></canvas>';
     safeChart('cBar',{
       type:'bar',
       data:{
@@ -1148,13 +1102,14 @@ function renderCharts(){
           y:{
             grid:{display:false},
             ticks:{color:'#8a9a8a',font:{family:'DM Mono',size:10}},
-            afterFit(axis){axis.width=120;}
+            afterFit(axis){axis.width=110;}
           }
         },
-        layout:{padding:{right:12}}
+        layout:{padding:{right:10}}
       }
     });
   } else {
+    barWrap.style.height='200px';
     barWrap.innerHTML='<div class="chart-empty">sem gastos variáveis neste mês</div>';
   }
 
@@ -1265,4 +1220,4 @@ document.getElementById('qVal').addEventListener('keydown',e=>{if(e.key==='Enter
 document.getElementById('iVal').addEventListener('keydown',e=>{if(e.key==='Enter')addInv();});
 </script>
 </body>
-</html> 
+</html>
