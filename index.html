@@ -557,13 +557,19 @@ async function startApp(){
     } else {
       // First time — seed data
       D=seedData();
-      cloudSave();
+      await cloudSave();
     }
-    // Listen for real-time changes from other devices
+    // Listen for real-time changes from OTHER devices only
+    // Use a flag to ignore the first snapshot (which is just the current state we already loaded)
+    let firstSnapshot=true;
     window._fb.listen(userCode,(payload)=>{
-      D=payload;
-      renderAll();
-      setSyncStatus('ok');
+      if(firstSnapshot){firstSnapshot=false;return;}
+      // Only apply remote update if we're not in the middle of saving
+      if(!saveTimer){
+        D=payload;
+        renderAll();
+        setSyncStatus('ok');
+      }
     });
   } else {
     // Offline fallback to localStorage
@@ -638,8 +644,13 @@ function persist(){
 
 async function cloudSave(){
   if(!window._fb||!userCode)return;
-  await window._fb.save(userCode,D);
-  setSyncStatus('ok');
+  try{
+    await window._fb.save(userCode,D);
+    setSyncStatus('ok');
+  }catch(e){
+    console.warn('Erro ao salvar na nuvem:',e);
+    setSyncStatus('offline');
+  }
 }
 
 // Check saved code on load
