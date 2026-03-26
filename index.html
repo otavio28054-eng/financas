@@ -123,17 +123,43 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 .qf input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer;}
 .qf input:focus,.qf select:focus{border-color:var(--green);}
 .qf select option{background:#141714;}
-.qgrid{display:grid;grid-template-columns:130px 1.6fr 1fr 1.5fr;gap:10px;align-items:end;margin-bottom:10px;}
-.qgrid2{display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;align-items:end;}
+/* ── NOVO QUICK FORM ── */
+.qtype-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.qtype-btn{background:var(--surface2);border:2px solid var(--border2);border-radius:10px;padding:.65rem .5rem;cursor:pointer;text-align:center;transition:all .18s;color:var(--text2);}
+.qtype-btn:hover{border-color:var(--border2);background:var(--surface);}
+.qtype-btn.active-inc{border-color:var(--green);background:rgba(74,222,128,.08);color:var(--green-text);}
+.qtype-btn.active-fix{border-color:var(--blue);background:rgba(96,165,250,.08);color:var(--blue-text);}
+.qtype-btn.active-card{border-color:var(--red);background:rgba(248,113,113,.08);color:var(--red-text);}
+.qtype-btn.active-var{border-color:var(--amber);background:rgba(251,191,36,.08);color:var(--amber-text);}
+.qtype-icon{font-size:1.3rem;margin-bottom:3px;}
+.qtype-lbl{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;display:block;}
+
+.qfields{display:grid;gap:10px;margin-bottom:10px;}
+.qfields.cols2{grid-template-columns:1fr 1fr;}
+.qfields.cols3{grid-template-columns:1.8fr 1fr 1fr;}
+.qfields.cols4{grid-template-columns:130px 1.6fr 1fr 1.5fr;}
+
 .btn-plus{background:var(--green);border:none;border-radius:8px;height:36px;width:100%;color:#0d0f0e;font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
 .btn-plus:hover{opacity:.88;transform:translateY(-1px);}
+.btn-plus.red{background:var(--red);}
+.btn-plus.blue{background:var(--blue);}
+.btn-plus.amber{background:var(--amber);}
 
+.qsection{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:.9rem;margin-bottom:10px;animation:fadeIn .15s ease;}
+.qsection-title{font-family:'DM Mono',monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.7rem;}
+.qsection-title.green{color:var(--green);}.qsection-title.red{color:var(--red-text);}
+.qsection-title.blue{color:var(--blue-text);}.qsection-title.amber{color:var(--amber-text);}
+
+.par-info{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--green-text);margin-top:6px;min-height:16px;}
+
+/* legado mantido p/ compatibilidade */
+.qgrid{display:grid;grid-template-columns:130px 1.6fr 1fr 1.5fr;gap:10px;align-items:end;margin-bottom:10px;}
+.qgrid2{display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;align-items:end;}
 .par-toggle{display:flex;align-items:center;gap:8px;}
 .par-toggle input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;}
 .par-toggle label{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--text2);cursor:pointer;text-transform:uppercase;letter-spacing:.08em;}
 .par-box{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:.8rem;margin-bottom:10px;display:none;}
 .par-box.open{display:block;animation:fadeIn .15s ease;}
-.par-info{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--green-text);margin-top:6px;min-height:16px;}
 
 .list-lbl{font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:.55rem;}
 .ilist{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:.4rem;}
@@ -287,6 +313,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 
   /* Quick form */
   .card-box{padding:1rem .9rem;}
+  .qtype-row{grid-template-columns:repeat(2,1fr);gap:7px;}
+  .qfields.cols4{grid-template-columns:1fr 1fr;}
+  .qfields.cols3{grid-template-columns:1fr 1fr;}
+  .qfields.cols2{grid-template-columns:1fr 1fr;}
   .qgrid{grid-template-columns:1fr 1fr;}
   .qgrid .qf:nth-child(1){grid-column:1;}
   .qgrid .qf:nth-child(2){grid-column:1/-1;}
@@ -414,52 +444,158 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 <div id="tab-quick" class="tab-content active">
   <div class="card-box">
     <div class="form-title">+ novo lançamento</div>
-    <div class="qgrid">
-      <div class="qf"><label>Data</label><input type="date" id="qDate"></div>
-      <div class="qf"><label>Descrição</label><input type="text" id="qName" placeholder="Ex: iFood, Salário..."></div>
-      <div class="qf"><label>Valor R$</label><input type="number" id="qVal" step="0.01" min="0" placeholder="0,00"></div>
-      <div class="qf"><label>Categoria</label><select id="qCat"></select></div>
+
+    <!-- Tipo de lançamento -->
+    <div class="qtype-row" id="qtypeRow">
+      <button class="qtype-btn" id="qtype-inc" onclick="setQType('inc',this)">
+        <div class="qtype-icon">💰</div><span class="qtype-lbl">Renda</span>
+      </button>
+      <button class="qtype-btn" id="qtype-fix" onclick="setQType('fix',this)">
+        <div class="qtype-icon">📌</div><span class="qtype-lbl">Desp. Fixa</span>
+      </button>
+      <button class="qtype-btn" id="qtype-card" onclick="setQType('card',this)">
+        <div class="qtype-icon">💳</div><span class="qtype-lbl">Cartão</span>
+      </button>
+      <button class="qtype-btn" id="qtype-var" onclick="setQType('var',this)">
+        <div class="qtype-icon">🛒</div><span class="qtype-lbl">Gasto Variável</span>
+      </button>
     </div>
-    <!-- Meio de pagamento -->
-    <div style="margin-bottom:8px;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns">
-        <button class="pay-btn active" onclick="setPayment('black',this)">💳 Black</button>
-        <button class="pay-btn" onclick="setPayment('master',this)">💳 Master</button>
-        <button class="pay-btn" onclick="setPayment('mercadopago',this)">💳 Mercado Pago</button>
-        <button class="pay-btn" onclick="setPayment('debito',this)">🏦 Débito</button>
-        <button class="pay-btn" onclick="setPayment('pix',this)">⚡ Pix</button>
-        <button class="pay-btn" onclick="setPayment('gabi',this)">💳 Gabi</button>
+
+    <!-- RENDA -->
+    <div id="qform-inc" class="qform-panel" style="display:none;">
+      <div class="qsection">
+        <div class="qsection-title green">📥 Renda</div>
+        <div class="qfields cols4" style="align-items:end;">
+          <div class="qf"><label>Data</label><input type="date" id="qDate_inc"></div>
+          <div class="qf"><label>Descrição</label><input type="text" id="qName_inc" placeholder="Ex: Salário, Freela..."></div>
+          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_inc" step="0.01" min="0" placeholder="0,00"></div>
+          <div class="qf"><label>Categoria</label><select id="qCat_inc"></select></div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">De quem é a renda</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_inc">
+            <button class="pay-btn active" onclick="setDebtorFor('inc','otavio',this)">👤 Otávio</button>
+            <button class="pay-btn" onclick="setDebtorFor('inc','amor',this)">💚 Amor</button>
+            <button class="pay-btn" onclick="setDebtorFor('inc','chirlei',this)">👩 Chirlei</button>
+            <button class="pay-btn" onclick="setDebtorFor('inc','mae',this)">👩‍👦 Mãe</button>
+            <button class="pay-btn" onclick="setDebtorFor('inc','dividido',this)">🤝 Dividido</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-plus" style="width:80px;" onclick="quickAddTyped('inc')">+</button>
+        </div>
       </div>
     </div>
-    <!-- De quem é o débito -->
-    <div style="margin-bottom:10px;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">De quem é o débito</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns">
-        <button class="pay-btn active" onclick="setDebtor('otavio',this)" title="Você — padrão, sem precisar clicar">👤 Otávio</button>
-        <button class="pay-btn" onclick="setDebtor('amor',this)">💚 Amor</button>
-        <button class="pay-btn" onclick="setDebtor('chirlei',this)">👩 Chirlei</button>
-        <button class="pay-btn" onclick="setDebtor('mae',this)">👩‍👦 Mãe</button>
-        <button class="pay-btn" onclick="setDebtor('dividido',this)">🤝 Dividido</button>
+
+    <!-- DESPESA FIXA -->
+    <div id="qform-fix" class="qform-panel" style="display:none;">
+      <div class="qsection">
+        <div class="qsection-title blue">📌 Despesa Fixa (recorrente todo mês)</div>
+        <div class="qfields cols4" style="align-items:end;">
+          <div class="qf"><label>Dia do vencimento</label><input type="number" id="qDay_fix" min="1" max="31" placeholder="ex: 15"></div>
+          <div class="qf"><label>Descrição</label><input type="text" id="qName_fix" placeholder="Ex: Aluguel, Internet..."></div>
+          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_fix" step="0.01" min="0" placeholder="0,00"></div>
+          <div class="qf"><label>Categoria</label><select id="qCat_fix"></select></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-plus blue" style="width:80px;" onclick="quickAddTyped('fix')">+</button>
+        </div>
       </div>
     </div>
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:8px;">
-      <div class="par-toggle">
-        <input type="checkbox" id="qParCheck" onchange="toggleParBox()">
-        <label for="qParCheck">Parcelado no cartão?</label>
+
+    <!-- CARTÃO DE CRÉDITO -->
+    <div id="qform-card" class="qform-panel" style="display:none;">
+      <div class="qsection">
+        <div class="qsection-title red">💳 Cartão de Crédito</div>
+        <div class="qfields cols3" style="align-items:end;margin-bottom:10px;">
+          <div class="qf"><label>Descrição</label><input type="text" id="qName_card" placeholder="Ex: Nike, Dentista..."></div>
+          <div class="qf"><label>Valor da parcela R$</label><input type="number" id="qVal_card" step="0.01" min="0" placeholder="0,00"></div>
+          <div class="qf"><label>Categoria</label><select id="qCat_card"></select></div>
+        </div>
+        <!-- Cartão usado -->
+        <div style="margin-bottom:10px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_card">
+            <button class="pay-btn active" onclick="setPayFor('card','black',this)">💳 Black</button>
+            <button class="pay-btn" onclick="setPayFor('card','master',this)">💳 Master</button>
+            <button class="pay-btn" onclick="setPayFor('card','mercadopago',this)">💳 Mercado Pago</button>
+            <button class="pay-btn" onclick="setPayFor('card','gabi',this)">💳 Gabi</button>
+          </div>
+        </div>
+        <!-- Quem gastou -->
+        <div style="margin-bottom:10px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_card">
+            <button class="pay-btn active" onclick="setDebtorFor('card','otavio',this)">👤 Otávio</button>
+            <button class="pay-btn" onclick="setDebtorFor('card','amor',this)">💚 Amor</button>
+            <button class="pay-btn" onclick="setDebtorFor('card','chirlei',this)">👩 Chirlei</button>
+            <button class="pay-btn" onclick="setDebtorFor('card','mae',this)">👩‍👦 Mãe</button>
+            <button class="pay-btn" onclick="setDebtorFor('card','dividido',this)">🤝 Dividido</button>
+          </div>
+        </div>
+        <!-- Parcelas -->
+        <div style="margin-bottom:10px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Parcelamento</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="pay-btn active" id="qCardTipo_fixa" onclick="setCardTipo('fixa',this)">🔄 Fixa mensal</button>
+            <button class="pay-btn" id="qCardTipo_par" onclick="setCardTipo('par',this)">🗓️ Parcelado</button>
+          </div>
+          <div id="qParFields" style="display:none;">
+            <div class="qfields cols2" style="margin-bottom:6px;">
+              <div class="qf"><label>Parcela atual (ex: 1)</label><input type="number" id="qPA_card" min="1" placeholder="1" oninput="calcEndMonthCard()"></div>
+              <div class="qf"><label>Total de parcelas (ex: 12)</label><input type="number" id="qPT_card" min="1" placeholder="12" oninput="calcEndMonthCard()"></div>
+            </div>
+            <div class="par-info" id="parInfo_card"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-plus red" style="width:80px;" onclick="quickAddTyped('card')">+</button>
+        </div>
       </div>
     </div>
-    <div id="divPreview" style="display:none;"></div>
-    <div class="par-box" id="parBox">
-      <div class="qgrid2">
-        <div class="qf"><label>Parcela atual (ex: 1)</label><input type="number" id="qPA" min="1" placeholder="1" oninput="calcEndMonth()"></div>
-        <div class="qf"><label>Total de parcelas (ex: 12)</label><input type="number" id="qPT" min="1" placeholder="12" oninput="calcEndMonth()"></div>
-        <div class="qf" style="display:flex;align-items:flex-end;"><button class="btn-plus" onclick="quickAdd()">+</button></div>
+
+    <!-- GASTO VARIÁVEL -->
+    <div id="qform-var" class="qform-panel" style="display:none;">
+      <div class="qsection">
+        <div class="qsection-title amber">🛒 Gasto Variável</div>
+        <div class="qfields cols4" style="align-items:end;">
+          <div class="qf"><label>Data</label><input type="date" id="qDate_var"></div>
+          <div class="qf"><label>Descrição</label><input type="text" id="qName_var" placeholder="Ex: iFood, Gasolina..."></div>
+          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_var" step="0.01" min="0" placeholder="0,00"></div>
+          <div class="qf"><label>Categoria</label><select id="qCat_var"></select></div>
+        </div>
+        <!-- Meio de pagamento -->
+        <div style="margin-bottom:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_var">
+            <button class="pay-btn active" onclick="setPayFor('var','black',this)">💳 Black</button>
+            <button class="pay-btn" onclick="setPayFor('var','master',this)">💳 Master</button>
+            <button class="pay-btn" onclick="setPayFor('var','mercadopago',this)">💳 Mercado Pago</button>
+            <button class="pay-btn" onclick="setPayFor('var','debito',this)">🏦 Débito</button>
+            <button class="pay-btn" onclick="setPayFor('var','pix',this)">⚡ Pix</button>
+            <button class="pay-btn" onclick="setPayFor('var','gabi',this)">💳 Gabi</button>
+          </div>
+        </div>
+        <!-- Quem gastou -->
+        <div style="margin-bottom:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_var">
+            <button class="pay-btn active" onclick="setDebtorFor('var','otavio',this)">👤 Otávio</button>
+            <button class="pay-btn" onclick="setDebtorFor('var','amor',this)">💚 Amor</button>
+            <button class="pay-btn" onclick="setDebtorFor('var','chirlei',this)">👩 Chirlei</button>
+            <button class="pay-btn" onclick="setDebtorFor('var','mae',this)">👩‍👦 Mãe</button>
+            <button class="pay-btn" onclick="setDebtorFor('var','dividido',this)">🤝 Dividido</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-plus amber" style="width:80px;" onclick="quickAddTyped('var')">+</button>
+        </div>
       </div>
-      <div class="par-info" id="parInfo"></div>
     </div>
-    <div id="qAddRow" style="display:flex;justify-content:flex-end;">
-      <button class="btn-plus" style="width:80px;" onclick="quickAdd()">+</button>
+
+    <!-- Estado inicial: orientação -->
+    <div id="qform-hint" style="padding:.8rem 0;text-align:center;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text3);">
+      ↑ Selecione o tipo de lançamento acima
     </div>
   </div>
   <div class="list-lbl" id="qListLbl">Lançamentos de —</div>
@@ -774,9 +910,10 @@ async function startApp(){
   document.getElementById('mainApp').style.display='';
   document.getElementById('syncBadge').style.display='flex';
   document.getElementById('userCodeBadge').textContent=userCode+' · sair';
-  buildSel('qCat','mercado');buildSel('fCat','outros');
-  document.getElementById('qDate').value=todayStr();
-  document.getElementById('fDate').value=todayStr();
+  buildSel('qCat_inc','salario');buildSel('qCat_fix','outros');buildSel('qCat_card','outros');buildSel('qCat_var','mercado');
+  buildSel('fCat','outros');
+  document.getElementById('qDate_inc').value=todayStr();
+  document.getElementById('qDate_var').value=todayStr();
   document.getElementById('iMonth').value=mKey(todayDate.getFullYear(),todayDate.getMonth());
 
   setSyncStatus('saving');
@@ -989,123 +1126,165 @@ function renderSummary(){
   bar.style.background=pct>90?'var(--red)':pct>70?'var(--amber)':'var(--green)';
 }
 
-// ── QUICK ──────────────────────────────────────────────────────────────
-function toggleParBox(){
-  const on=document.getElementById('qParCheck').checked;
-  document.getElementById('parBox').classList.toggle('open',on);
-  document.getElementById('qAddRow').style.display=on?'none':'flex';
-  if(on)calcEndMonth();
+// ── QUICK TYPED FORM ──────────────────────────────────────────────────
+let qActiveType = null; // 'inc' | 'fix' | 'card' | 'var'
+const qState = {
+  inc:  {payment:'pix',  debtor:'otavio'},
+  fix:  {payment:'',     debtor:'otavio'},
+  card: {payment:'black',debtor:'otavio', tipo:'fixa'},
+  var:  {payment:'black',debtor:'otavio'},
+};
+
+function setQType(type, btn){
+  qActiveType = type;
+  // highlight button
+  document.querySelectorAll('.qtype-btn').forEach(b=>b.className='qtype-btn');
+  btn.classList.add('active-'+type);
+  // show/hide panels
+  ['inc','fix','card','var'].forEach(t=>{
+    document.getElementById('qform-'+t).style.display = t===type?'':'none';
+  });
+  document.getElementById('qform-hint').style.display='none';
 }
-function calcEndMonth(){
-  const pa=parseInt(document.getElementById('qPA').value)||null;
-  const pt=parseInt(document.getElementById('qPT').value)||null;
-  if(!pa||!pt){document.getElementById('parInfo').textContent='';return;}
-  // Retroagir startMonth baseado na parcela atual
+
+function setPayFor(type, val, btn){
+  qState[type].payment = val;
+  document.querySelectorAll('#qPayBtns_'+type+' .pay-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setDebtorFor(type, val, btn){
+  qState[type].debtor = val;
+  document.querySelectorAll('#qDebtorBtns_'+type+' .pay-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setCardTipo(tipo, btn){
+  qState.card.tipo = tipo;
+  document.querySelectorAll('#qCardTipo_fixa, #qCardTipo_par').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('qParFields').style.display = tipo==='par' ? '' : 'none';
+  if(tipo==='par') calcEndMonthCard();
+}
+
+function calcEndMonthCard(){
+  const pa=parseInt(document.getElementById('qPA_card').value)||null;
+  const pt=parseInt(document.getElementById('qPT_card').value)||null;
+  if(!pa||!pt){document.getElementById('parInfo_card').textContent='';return;}
   let startY=viewY, startM=viewM-(pa-1);
   while(startM<0){startM+=12;startY--;}
   const startMonth=mKey(startY,startM);
   const end=addMonths(startMonth,1,pt);
   const retroTxt=pa>1?` · retroativo desde ${MESES[startM].slice(0,3)}/${String(startY).slice(2)}`:'';
-  document.getElementById('parInfo').textContent=end?'Termina em: '+end+retroTxt:'';
+  document.getElementById('parInfo_card').textContent=end?'Termina em: '+end+retroTxt:'';
 }
 
-// ── PAYMENT / DEBTOR SELECTION ──────────────────────────────────────────
-let qPayment='black';
-let qDebtor='otavio';
+function quickAddTyped(type){
+  const st = qState[type];
 
-function setPayment(val,btn){
-  qPayment=val;
-  document.querySelectorAll('#qPayBtns .pay-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-function setDebtor(val,btn){
-  qDebtor=val;
-  document.querySelectorAll('#qDebtorBtns .pay-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function quickAdd(){
-  const name=document.getElementById('qName').value.trim();
-  const rawVal=parseFloat(document.getElementById('qVal').value);
-  const value=rawVal;
-  const cat=document.getElementById('qCat').value;
-  const date=document.getElementById('qDate').value||todayStr();
-  const parOn=document.getElementById('qParCheck').checked;
-  if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
-  const c=catMap[cat];
-
-  // Validate parcela fields
-  if(parOn){
-    const pa=parseInt(document.getElementById('qPA').value)||0;
-    const pt=parseInt(document.getElementById('qPT').value)||0;
-    if(pt<1){toast('Informe o total de parcelas.');document.getElementById('qPT').focus();return;}
-    if(pa<1){toast('Informe a parcela atual.');document.getElementById('qPA').focus();return;}
+  if(type==='inc'){
+    const name=document.getElementById('qName_inc').value.trim();
+    const value=parseFloat(document.getElementById('qVal_inc').value);
+    const cat=document.getElementById('qCat_inc').value;
+    const date=document.getElementById('qDate_inc').value||todayStr();
+    if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
+    if(st.debtor==='dividido'){
+      const half=parseFloat((value/2).toFixed(2));
+      getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:st.payment,debtor:'otavio',dividedFrom:name});
+      getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:st.payment,debtor:'dividido',dividedFrom:name});
+      toast('Renda dividida! '+fmt(half)+' pra cada.');
+    } else {
+      getMonth(viewY,viewM).income.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:st.payment,debtor:st.debtor});
+      toast('Renda lançada!');
+    }
+    document.getElementById('qName_inc').value='';
+    document.getElementById('qVal_inc').value='';
   }
 
-  if(qDebtor==='dividido'){
-    const half=parseFloat((value/2).toFixed(2));
-    if(parOn){
-      const pa=parseInt(document.getElementById('qPA').value)||1;
-      const pt=parseInt(document.getElementById('qPT').value)||1;
-      // Retroagir ao mês real de início
+  else if(type==='fix'){
+    const name=document.getElementById('qName_fix').value.trim();
+    const value=parseFloat(document.getElementById('qVal_fix').value);
+    const cat=document.getElementById('qCat_fix').value;
+    const day=parseInt(document.getElementById('qDay_fix').value)||null;
+    if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
+    D.fixed.push({id:uid(),name,value,cat,day});
+    toast('Despesa fixa adicionada!');
+    document.getElementById('qName_fix').value='';
+    document.getElementById('qVal_fix').value='';
+    document.getElementById('qDay_fix').value='';
+  }
+
+  else if(type==='card'){
+    const name=document.getElementById('qName_card').value.trim();
+    const value=parseFloat(document.getElementById('qVal_card').value);
+    const cat=document.getElementById('qCat_card').value;
+    if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
+    const tipo = st.tipo==='par'?'parcelada':'fixa';
+    if(tipo==='parcelada'){
+      const pa=parseInt(document.getElementById('qPA_card').value)||0;
+      const pt=parseInt(document.getElementById('qPT_card').value)||0;
+      if(pt<1){toast('Informe o total de parcelas.');return;}
+      if(pa<1){toast('Informe a parcela atual.');return;}
       let startY=viewY, startM=viewM-(pa-1);
       while(startM<0){startM+=12;startY--;}
       const startMonth=mKey(startY,startM);
-      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:'otavio',dividedFrom:name});
-      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:'dividido',dividedFrom:name});
-    } else if(c&&c.t==='income'){
-      getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:qPayment,debtor:'otavio',dividedFrom:name});
-      getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:qPayment,debtor:'dividido',dividedFrom:name});
-    } else {
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:qPayment,debtor:'otavio',dividedFrom:name});
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:qPayment,debtor:'dividido',dividedFrom:name});
-    }
-    toast('Dividido! '+fmt(half)+' pra cada um.');
-  } else {
-    if(parOn){
-      const pa=parseInt(document.getElementById('qPA').value)||1;
-      const pt=parseInt(document.getElementById('qPT').value)||1;
-
-      // Calcular o mês real de início retroagindo 'pa-1' meses a partir do mês atual
-      let startY=viewY, startM=viewM-(pa-1);
-      while(startM<0){startM+=12;startY--;}
-      const startMonth=mKey(startY,startM);
-
-      D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:qDebtor});
-
-      // Se pa > 1, avisar quantos meses foram retroativamente preenchidos
-      if(pa>1){
-        const nomesRetro=[];
-        for(let i=0;i<pa-1;i++){
-          let my=startY, mm=startM+i;
-          while(mm>11){mm-=12;my++;}
-          nomesRetro.push(MESES[mm].slice(0,3)+'/'+String(my).slice(2));
-        }
-        toast('Parcela lançada! Retroativo: '+nomesRetro.join(', ')+'.');
+      if(st.debtor==='dividido'){
+        const half=parseFloat((value/2).toFixed(2));
+        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name});
+        toast('Parcela dividida! '+fmt(half)+' pra cada.');
       } else {
-        toast('Parcela lançada! 1/'+pt);
+        D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:st.debtor});
+        toast(pa>1?'Parcela retroativa lançada! 1/'+pt:'Parcela lançada! 1/'+pt);
       }
-    } else if(c&&c.t==='income'){
-      getMonth(viewY,viewM).income.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
-      toast('Lançado!');
-    } else if(c&&c.t==='investment'){
-      D.investments.push({id:uid(),name,value,month:mKey(viewY,viewM),ts:Date.now(),payment:qPayment,debtor:qDebtor});
-      toast('Lançado!');
+      document.getElementById('qPA_card').value='';
+      document.getElementById('qPT_card').value='';
+      document.getElementById('parInfo_card').textContent='';
     } else {
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
-      toast('Lançado!');
+      if(st.debtor==='dividido'){
+        const half=parseFloat((value/2).toFixed(2));
+        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'dividido',dividedFrom:name});
+        toast('Fixa dividida! '+fmt(half)+' pra cada.');
+      } else {
+        D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:st.debtor});
+        toast('Cartão fixo adicionado!');
+      }
     }
+    document.getElementById('qName_card').value='';
+    document.getElementById('qVal_card').value='';
   }
 
-  document.getElementById('qName').value='';
-  document.getElementById('qVal').value='';
-  document.getElementById('qParCheck').checked=false;
-  document.getElementById('qPA').value='';document.getElementById('qPT').value='';
-  document.getElementById('parInfo').textContent='';
-  toggleParBox();
+  else if(type==='var'){
+    const name=document.getElementById('qName_var').value.trim();
+    const value=parseFloat(document.getElementById('qVal_var').value);
+    const cat=document.getElementById('qCat_var').value;
+    const date=document.getElementById('qDate_var').value||todayStr();
+    if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
+    if(st.debtor==='dividido'){
+      const half=parseFloat((value/2).toFixed(2));
+      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:st.payment,debtor:'otavio',dividedFrom:name});
+      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:st.payment,debtor:'dividido',dividedFrom:name});
+      toast('Dividido! '+fmt(half)+' pra cada.');
+    } else {
+      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:st.payment,debtor:st.debtor});
+      toast('Lançado!');
+    }
+    document.getElementById('qName_var').value='';
+    document.getElementById('qVal_var').value='';
+  }
+
   persist();renderAll();
-  document.getElementById('qName').focus();
+  // focus on description field of current type
+  const descId = {inc:'qName_inc',fix:'qName_fix',card:'qName_card',var:'qName_var'}[type];
+  if(descId) document.getElementById(descId).focus();
 }
+
+// ── COMPAT stubs for old code that may still reference these ───────────
+function toggleParBox(){}
+function calcEndMonth(){}
+function setPayment(val,btn){setPayFor('var',val,btn);}
+function setDebtor(val,btn){setDebtorFor('var',val,btn);}
+function quickAdd(){quickAddTyped(qActiveType||'var');}
+let qPayment='black', qDebtor='otavio';
 
 function renderQuick(){
   const md=getMonth(viewY,viewM);
@@ -1756,7 +1935,10 @@ document.addEventListener('keydown',e=>{
     if(e.key==='ArrowRight')changeMonth(1);
   }
 });
-document.getElementById('qVal').addEventListener('keydown',e=>{if(e.key==='Enter')quickAdd();});
+['qVal_inc','qVal_fix','qVal_card','qVal_var'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')quickAddTyped(qActiveType);});
+});
 document.getElementById('iVal').addEventListener('keydown',e=>{if(e.key==='Enter')addInv();});
 </script>
 </body>
