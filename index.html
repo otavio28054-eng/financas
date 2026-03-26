@@ -999,8 +999,14 @@ function toggleParBox(){
 function calcEndMonth(){
   const pa=parseInt(document.getElementById('qPA').value)||null;
   const pt=parseInt(document.getElementById('qPT').value)||null;
-  const end=addMonths(mKey(viewY,viewM),pa,pt);
-  document.getElementById('parInfo').textContent=end?'Termina em: '+end:'';
+  if(!pa||!pt){document.getElementById('parInfo').textContent='';return;}
+  // Retroagir startMonth baseado na parcela atual
+  let startY=viewY, startM=viewM-(pa-1);
+  while(startM<0){startM+=12;startY--;}
+  const startMonth=mKey(startY,startM);
+  const end=addMonths(startMonth,1,pt);
+  const retroTxt=pa>1?` · retroativo desde ${MESES[startM].slice(0,3)}/${String(startY).slice(2)}`:'';
+  document.getElementById('parInfo').textContent=end?'Termina em: '+end+retroTxt:'';
 }
 
 // ── PAYMENT / DEBTOR SELECTION ──────────────────────────────────────────
@@ -1028,14 +1034,25 @@ function quickAdd(){
   if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
   const c=catMap[cat];
 
+  // Validate parcela fields
+  if(parOn){
+    const pa=parseInt(document.getElementById('qPA').value)||0;
+    const pt=parseInt(document.getElementById('qPT').value)||0;
+    if(pt<1){toast('Informe o total de parcelas.');document.getElementById('qPT').focus();return;}
+    if(pa<1){toast('Informe a parcela atual.');document.getElementById('qPA').focus();return;}
+  }
+
   if(qDebtor==='dividido'){
-    // Salva dois itens: metade meu, metade da esposa
     const half=parseFloat((value/2).toFixed(2));
     if(parOn){
       const pa=parseInt(document.getElementById('qPA').value)||1;
       const pt=parseInt(document.getElementById('qPT').value)||1;
-      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa,pt,startMonth:mKey(viewY,viewM),split:false,payment:qPayment,debtor:'otavio',dividedFrom:name});
-      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa,pt,startMonth:mKey(viewY,viewM),split:false,payment:qPayment,debtor:'dividido',dividedFrom:name});
+      // Retroagir ao mês real de início
+      let startY=viewY, startM=viewM-(pa-1);
+      while(startM<0){startM+=12;startY--;}
+      const startMonth=mKey(startY,startM);
+      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:'otavio',dividedFrom:name});
+      D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:'dividido',dividedFrom:name});
     } else if(c&&c.t==='income'){
       getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:qPayment,debtor:'otavio',dividedFrom:name});
       getMonth(viewY,viewM).income.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:qPayment,debtor:'dividido',dividedFrom:name});
@@ -1048,15 +1065,36 @@ function quickAdd(){
     if(parOn){
       const pa=parseInt(document.getElementById('qPA').value)||1;
       const pt=parseInt(document.getElementById('qPT').value)||1;
-      D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa,pt,startMonth:mKey(viewY,viewM),payment:qPayment,debtor:qDebtor});
+
+      // Calcular o mês real de início retroagindo 'pa-1' meses a partir do mês atual
+      let startY=viewY, startM=viewM-(pa-1);
+      while(startM<0){startM+=12;startY--;}
+      const startMonth=mKey(startY,startM);
+
+      D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:qPayment,debtor:qDebtor});
+
+      // Se pa > 1, avisar quantos meses foram retroativamente preenchidos
+      if(pa>1){
+        const nomesRetro=[];
+        for(let i=0;i<pa-1;i++){
+          let my=startY, mm=startM+i;
+          while(mm>11){mm-=12;my++;}
+          nomesRetro.push(MESES[mm].slice(0,3)+'/'+String(my).slice(2));
+        }
+        toast('Parcela lançada! Retroativo: '+nomesRetro.join(', ')+'.');
+      } else {
+        toast('Parcela lançada! 1/'+pt);
+      }
     } else if(c&&c.t==='income'){
       getMonth(viewY,viewM).income.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
+      toast('Lançado!');
     } else if(c&&c.t==='investment'){
       D.investments.push({id:uid(),name,value,month:mKey(viewY,viewM),ts:Date.now(),payment:qPayment,debtor:qDebtor});
+      toast('Lançado!');
     } else {
       getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
+      toast('Lançado!');
     }
-    toast('Lançado!');
   }
 
   document.getElementById('qName').value='';
@@ -1071,27 +1109,35 @@ function quickAdd(){
 
 function renderQuick(){
   const md=getMonth(viewY,viewM);
-  const all=[...md.income,...md.variable].sort((a,b)=>{
+  const cards=activeCards(viewY,viewM);
+  // Cards recebem data virtual do dia 1 do mês pra ordenar junto com os outros
+  const cardItems=cards.map(c=>({...c,_isCard:true,date:mKey(viewY,viewM)+'-01',ts:-1}));
+  const all=[...md.income,...md.variable,...cardItems].sort((a,b)=>{
     const da=a.date||'',db=b.date||'';
-    return da<db?1:da>db?-1:b.ts-a.ts;
+    if(da!==db)return da<db?1:-1;
+    return (b.ts||0)-(a.ts||0);
   });
   const el=document.getElementById('qList');
   if(!all.length){el.innerHTML='<div class="empty">nenhum lançamento neste mês</div>';return;}
   el.innerHTML=all.map(item=>{
     const c=catMap[item.cat]||{l:'?',c:'#888',t:'expense'};
     const isInc=c.t==='income';
+    const isCard=item._isCard;
     const vc=isInc?'color:var(--green-text)':'color:var(--red-text)';
     const list=isInc?'income':'variable';
     const payTag=item.payment&&item.payment!=='black'?`<span class="qtag" style="background:rgba(96,165,250,.12);color:var(--blue-text);">${PAY_LABELS[item.payment]||item.payment}</span>`:'';
     const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-    return`<div class="qitem" onclick="openEdit('${item.id}','${list}')" style="cursor:pointer;">
+    const cardTag=isCard?`<span class="qtag" style="background:rgba(248,113,113,.12);color:var(--red-text);">💳 ${cardInfo(item,viewY,viewM)}</span>`:'';
+    const clickHandler=isCard?`openEditCard('${item.id}')`:`openEdit('${item.id}','${list}')`;
+    const delHandler=isCard?`delCard('${item.id}')`:`delQuick('${item.id}','${list}')`;
+    return`<div class="qitem" onclick="${clickHandler}" style="cursor:pointer;">
       <div class="cdot" style="background:${c.c}"></div>
-      <div class="qitem-date">${fmtDate(item.date)}</div>
+      <div class="qitem-date">${item.date?fmtDate(item.date):'fixo'}</div>
       <div class="qitem-name">${item.name}</div>
-      ${payTag}${debtorTag}
+      ${cardTag}${payTag}${debtorTag}
       <span class="qitem-cat" style="background:${c.c}22;color:${c.c}">${c.l}</span>
       <div class="qitem-val" style="${vc}">${isInc?'+':'-'} ${fmt(item.value)}</div>
-      <button class="qitem-del" onclick="event.stopPropagation();delQuick('${item.id}','${list}')">✕</button>
+      <button class="qitem-del" onclick="event.stopPropagation();${delHandler}">✕</button>
     </div>`;
   }).join('');
 }
@@ -1112,11 +1158,9 @@ function renderDetail(){
   const{inc,fix,card}=totalsFor(viewY,viewM);
   const df=debtorFilter;
 
-  // Mostrar/esconder seções de renda, fixas e cartão
-  // Só aparecem no modo "todos" ou "meus gastos"
-  const showGlobal=df==='todos'||df==='otavio';
+  // Renda, Fixas, Cartão e barra de comprometimento SEMPRE visíveis
   ['dIncBlock','dFixBlock','dCardBlock','dCommitWrap'].forEach(id=>{
-    document.getElementById(id).style.display=showGlobal?'':'none';
+    document.getElementById(id).style.display='';
   });
 
   // ── Income
@@ -1148,19 +1192,21 @@ function renderDetail(){
     </div>`;
   }).join(''):'<div class="empty">nenhuma despesa fixa</div>';
 
-  // ── Card
-  const cards=activeCards(viewY,viewM);
-  document.getElementById('dCardT').textContent=fmt(card);
+  // ── Card — filtered by debtor when not "todos"
+  let cards=activeCards(viewY,viewM);
+  if(df!=='todos') cards=cards.filter(c=>df==='otavio'?(!c.debtor||c.debtor==='otavio'):c.debtor===df);
+  const cardTotal=cards.reduce((s,x)=>s+x.value,0);
+  document.getElementById('dCardT').textContent=fmt(cardTotal);
   const cardEl=document.getElementById('dCardL');
   cardEl.innerHTML=cards.length?cards.map(item=>{
     const c=catMap[item.cat]||{c:'#888',l:'?'};
     const info=cardInfo(item,viewY,viewM);
     const end=item.tipo==='parcelada'?addMonths(item.startMonth,item.pa,item.pt):null;
-    const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span style="font-family:'DM Mono',monospace;font-size:.58rem;padding:2px 6px;border-radius:4px;background:rgba(192,132,252,.12);color:var(--purple);">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+    const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
     return`<div class="iitem">
       <div class="cdot" style="background:${c.c}"></div>
       <div class="iitem-main">
-        <div class="iitem-name">${item.name} ${debtorTag}</div>
+        <div class="iitem-name">${item.name}${debtorTag}</div>
         <div class="iitem-sub">${c.l} · ${info}${end?' · até '+end:''}${item.payment?' · '+PAY_LABELS[item.payment]:''}</div>
       </div>
       <div class="iitem-val r">- ${fmt(item.value)}</div>
@@ -1169,83 +1215,25 @@ function renderDetail(){
         <button class="bi" onclick="delCard('${item.id}')">✕</button>
       </div>
     </div>`;
-  }).join(''):'<div class="empty">nenhuma parcela ativa</div>';
+  }).join(''):'<div class="empty">nenhuma parcela'+(df!=='todos'?' para este filtro':'')+' </div>';
 
   // ── Variable: filter by debtor
   const allVar=md.variable;
   let myItems;
-  if(df==='todos')          myItems=allVar;
-  else if(df==='otavio')    myItems=allVar.filter(x=>!x.debtor||x.debtor==='otavio');
-  else if(df==='dividido')  myItems=allVar.filter(x=>x.debtor==='dividido');
-  else                      myItems=allVar.filter(x=>x.debtor===df);
+  if(df==='todos')         myItems=allVar;
+  else if(df==='otavio')   myItems=allVar.filter(x=>!x.debtor||x.debtor==='otavio');
+  else if(df==='dividido') myItems=allVar.filter(x=>x.debtor==='dividido');
+  else                     myItems=allVar.filter(x=>x.debtor===df);
 
-  // "A receber" só aparece nos modos Todos e Meus gastos
-  // Inclui dividido (a parte da esposa) e outros terceiros
-  const theirItems=(df==='otavio'||df==='todos')
-    ? allVar.filter(x=>x.debtor&&x.debtor!=='otavio')
-    : [];
-
-  // Title update
-  const titleMap={todos:'Todos os gastos variáveis',otavio:'Meus gastos variáveis',amor:'Gastos — Amor',chirlei:'Gastos — Chirlei',mae:'Gastos — Mãe',dividido:'Gastos divididos (parte da esposa)'};
+  const titleMap={todos:'Todos os gastos variáveis',otavio:'Meus gastos variáveis',amor:'Gastos — Amor',chirlei:'Gastos — Chirlei',mae:'Gastos — Mãe',dividido:'Gastos divididos'};
   document.getElementById('dVarTitle').textContent=titleMap[df]||'Gastos variáveis';
 
-  // Render main variable section
   const myTotal=myItems.reduce((s,x)=>s+x.value,0);
   document.getElementById('dVarT').textContent=fmt(myTotal);
   document.getElementById('dVarContent').innerHTML=buildVarHtml(myItems,df==='todos');
 
-  // ── A receber section
-  const receberBlock=document.getElementById('dReceberBlock');
-  if(theirItems.length>0&&(df==='otavio'||df==='todos')){
-    receberBlock.style.display='';
-    const receberTotal=theirItems.reduce((s,x)=>s+x.value,0);
-    document.getElementById('dReceberT').textContent=fmt(receberTotal);
-
-    // Group by debtor
-    const byDebtor={};
-    theirItems.forEach(item=>{
-      const d=item.debtor||'outros';
-      if(!byDebtor[d])byDebtor[d]={items:[],total:0};
-      byDebtor[d].items.push(item);
-      byDebtor[d].total+=item.value;
-    });
-
-    let rhtml='<div class="ilist" style="margin-bottom:.5rem;">';
-    Object.entries(byDebtor).forEach(([debtor,g])=>{
-      const dlabel=DEBTOR_LABELS[debtor]||debtor;
-      rhtml+=`<div class="receber-item" style="background:rgba(192,132,252,.04);">
-        <div style="font-size:1rem;">${DEBTOR_EMOJI[debtor]||'👤'}</div>
-        <div style="flex:1;">
-          <div style="font-size:.85rem;font-weight:600;">${dlabel}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);">${g.items.length} compra${g.items.length>1?'s':''} · clique para ver</div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--purple);">↩ ${fmt(g.total)}</div>
-        <button class="vcat-chev" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:.65rem;" onclick="toggleReceberGroup(this)">▼</button>
-      </div>
-      <div class="vcat-items hidden" style="background:rgba(192,132,252,.03);border-top:none;">
-        ${g.items.sort((a,b)=>b.value-a.value).map(item=>{
-          const c=catMap[item.cat]||{c:'#888',l:'?'};
-          return`<div class="iitem">
-            <div class="cdot" style="background:${c.c}"></div>
-            <div class="iitem-main">
-              <div class="iitem-name">${item.name}</div>
-              <div class="iitem-sub">${c.l}${item.date?' · '+fmtDate(item.date):''}${item.payment?' · '+PAY_LABELS[item.payment]:''}</div>
-            </div>
-            <div class="iitem-val" style="color:var(--purple);">- ${fmt(item.value)}</div>
-            <div class="iitem-acts">
-              <button class="bi ed" onclick="openEdit('${item.id}','variable')">✎</button>
-              <button class="bi" onclick="delQuick('${item.id}','variable')">✕</button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`;
-    });
-    rhtml+='</div>';
-    rhtml+=`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--text3);padding:.4rem .2rem;">💡 Esses gastos estão na sua fatura mas são de terceiros. Total a receber: <span style="color:var(--purple);font-weight:600;">${fmt(theirItems.reduce((s,x)=>s+x.value,0))}</span></div>`;
-    document.getElementById('dReceberContent').innerHTML=rhtml;
-  } else {
-    receberBlock.style.display='none';
-  }
+  // A receber removido — use os filtros para ver gastos por pessoa
+  document.getElementById('dReceberBlock').style.display='none';
 }
 
 function toggleReceberGroup(btn){
