@@ -265,15 +265,95 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 .pay-btn:hover{border-color:var(--green);color:var(--green);}
 .pay-btn.active{background:rgba(74,222,128,.12);border-color:var(--green);color:var(--green);}
 
+.qtag{font-family:'DM Mono',monospace;font-size:.52rem;padding:2px 5px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+
 @media(max-width:680px){
-  .summary-bar{grid-template-columns:repeat(2,1fr);}
-  .charts-grid{grid-template-columns:1fr;}.charts-grid .ccrd.full{grid-column:1;}
-  .qgrid{grid-template-columns:1fr 1fr;}.qgrid .qf:nth-child(3){grid-column:1/-1;}.qgrid .qf:nth-child(4){grid-column:1/-1;}
-  .qgrid2{grid-template-columns:1fr 1fr;}.qgrid2 .qf:last-child{grid-column:1/-1;}
-  .inv-row{grid-template-columns:1fr 1fr;}.inv-stats{grid-template-columns:1fr;}
+  /* App padding */
+  .app{padding:0 .9rem 6rem;}
+  header{padding:1rem 0 .8rem;}
+  .logo{font-size:1.1rem;}
+
+  /* Summary bar — 2 cols */
+  .summary-bar{grid-template-columns:repeat(2,1fr);gap:8px;padding:.8rem 0;}
+  .sbar{padding:.65rem .8rem;}
+  .sbar-val{font-size:.9rem;}
+
+  /* Tabs — scroll horizontal */
+  .tabs{gap:0;padding:.6rem 0 0;}
+  .tab{font-size:.68rem;padding:.45rem .7rem;}
+
+  /* Month nav */
+  .mnav-month{font-size:.95rem;}
+
+  /* Quick form */
+  .card-box{padding:1rem .9rem;}
+  .qgrid{grid-template-columns:1fr 1fr;}
+  .qgrid .qf:nth-child(1){grid-column:1;}
+  .qgrid .qf:nth-child(2){grid-column:1/-1;}
+  .qgrid .qf:nth-child(3){grid-column:1;}
+  .qgrid .qf:nth-child(4){grid-column:2;}
+  .qgrid2{grid-template-columns:1fr 1fr;}
+  .qgrid2 .qf:last-child{grid-column:1/-1;}
+
+  /* Pay/debtor buttons wrap tighter */
+  .pay-btn{font-size:.58rem;padding:4px 8px;}
+
+  /* Quick list items — stack better on small screens */
+  .qitem{flex-wrap:wrap;gap:5px;padding:.55rem .8rem;}
+  .qitem-name{font-size:.8rem;order:1;flex:1;min-width:120px;}
+  .qitem-date{font-size:.55rem;order:0;width:100%;color:var(--text3);}
+  .qitem-val{font-size:.78rem;order:2;min-width:auto;}
+  .qitem-del{order:3;opacity:1!important;}
+  .qitem-cat{display:none;} /* esconde cat tag no mobile pra não lotarem */
+
+  /* Detail sections */
+  .iitem{padding:.55rem .8rem;gap:7px;}
+  .iitem-name{font-size:.8rem;}
+  .iitem-val{font-size:.75rem;min-width:72px;}
+  .iitem-acts{opacity:1!important;}
+
+  /* Variable cat headers */
+  .vcat-hd{padding:.5rem .8rem;gap:6px;}
+  .vcat-name{font-size:.78rem;}
+  .vcat-total{font-size:.75rem;}
+  .vcat-pbar-w{display:none;}
+
+  /* Charts */
+  .charts-grid{grid-template-columns:1fr;}
+  .charts-grid .ccrd.full{grid-column:1;}
+  .ccrd{padding:.9rem .8rem;}
+
+  /* Annual */
   .annual-grid{grid-template-columns:repeat(3,1fr);}
+  .ann-card{padding:.65rem .7rem;}
+
+  /* Invest */
+  .inv-stats{grid-template-columns:1fr 1fr;}
+  .inv-row{grid-template-columns:1fr 1fr;}
+  .inv-row .qf:first-child{grid-column:1/-1;}
+
+  /* Debtor filter bar */
+  .debtor-filter-bar{flex-direction:column;align-items:flex-start;gap:6px;padding:.6rem 0 .7rem;}
+  .df-btns{gap:5px;}
+  .df-btn{font-size:.58rem;padding:4px 9px;}
+
+  /* Modal */
+  .modal{padding:1.2rem 1rem;max-height:95vh;}
+  .f2{grid-template-columns:1fr;}
+
+  /* Goal cards */
+  .goal-card{padding:.75rem .85rem;}
+
+  /* Sync badge */
+  .sync-badge{top:.6rem;right:.6rem;font-size:.55rem;padding:3px 7px;}
 }
-@media(max-width:420px){.annual-grid{grid-template-columns:repeat(2,1fr);}}
+
+@media(max-width:420px){
+  .annual-grid{grid-template-columns:repeat(2,1fr);}
+  .summary-bar{grid-template-columns:repeat(2,1fr);}
+  .inv-stats{grid-template-columns:1fr;}
+  .qitem-cat{display:none;}
+}
 </style>
 </head>
 <body>
@@ -968,13 +1048,13 @@ function quickAdd(){
     if(parOn){
       const pa=parseInt(document.getElementById('qPA').value)||1;
       const pt=parseInt(document.getElementById('qPT').value)||1;
-      D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa,pt,startMonth:mKey(viewY,viewM),split:divOn,payment:qPayment,debtor:qDebtor});
+      D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa,pt,startMonth:mKey(viewY,viewM),payment:qPayment,debtor:qDebtor});
     } else if(c&&c.t==='income'){
-      getMonth(viewY,viewM).income.unshift({id:uid(),name,value,cat,date,ts:Date.now(),split:divOn,payment:qPayment,debtor:qDebtor});
+      getMonth(viewY,viewM).income.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
     } else if(c&&c.t==='investment'){
       D.investments.push({id:uid(),name,value,month:mKey(viewY,viewM),ts:Date.now(),payment:qPayment,debtor:qDebtor});
     } else {
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),split:divOn,payment:qPayment,debtor:qDebtor});
+      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:qPayment,debtor:qDebtor});
     }
     toast('Lançado!');
   }
@@ -1002,18 +1082,16 @@ function renderQuick(){
     const isInc=c.t==='income';
     const vc=isInc?'color:var(--green-text)':'color:var(--red-text)';
     const list=isInc?'income':'variable';
-    const payTag=item.payment&&item.payment!=='black'?`<span style="font-family:'DM Mono',monospace;font-size:.55rem;padding:2px 5px;border-radius:4px;background:rgba(96,165,250,.12);color:var(--blue-text);white-space:nowrap;">${PAY_LABELS[item.payment]||item.payment}</span>`:'';
-    const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span style="font-family:'DM Mono',monospace;font-size:.55rem;padding:2px 5px;border-radius:4px;background:rgba(192,132,252,.12);color:var(--purple);white-space:nowrap;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-    return`<div class="qitem">
+    const payTag=item.payment&&item.payment!=='black'?`<span class="qtag" style="background:rgba(96,165,250,.12);color:var(--blue-text);">${PAY_LABELS[item.payment]||item.payment}</span>`:'';
+    const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+    return`<div class="qitem" onclick="openEdit('${item.id}','${list}')" style="cursor:pointer;">
       <div class="cdot" style="background:${c.c}"></div>
       <div class="qitem-date">${fmtDate(item.date)}</div>
       <div class="qitem-name">${item.name}</div>
-      ${item.split?'<span style="font-family:\'DM Mono\',monospace;font-size:.58rem;padding:2px 6px;border-radius:4px;background:rgba(251,191,36,.15);color:var(--amber-text);">÷2</span>':''}
       ${payTag}${debtorTag}
       <span class="qitem-cat" style="background:${c.c}22;color:${c.c}">${c.l}</span>
       <div class="qitem-val" style="${vc}">${isInc?'+':'-'} ${fmt(item.value)}</div>
-      <button class="qitem-del" style="color:var(--amber);border-color:transparent;" onclick="openEdit('${item.id}','${list}')" title="Editar">✎</button>
-      <button class="qitem-del" onclick="delQuick('${item.id}','${list}')">✕</button>
+      <button class="qitem-del" onclick="event.stopPropagation();delQuick('${item.id}','${list}')">✕</button>
     </div>`;
   }).join('');
 }
