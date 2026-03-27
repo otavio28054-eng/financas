@@ -427,7 +427,24 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 
 <div class="summary-bar">
   <div class="sbar inc"><div class="sbar-lbl">Renda</div><div class="sbar-val g" id="sbInc">R$ 0</div></div>
-  <div class="sbar exp"><div class="sbar-lbl">Gastos</div><div class="sbar-val r" id="sbExp">R$ 0</div></div>
+  <div class="sbar exp" id="sbarExp" onclick="toggleExpBreakdown()" style="cursor:pointer;user-select:none;" title="Clique para ver gastos por pessoa">
+    <div class="sbar-lbl" style="display:flex;align-items:center;gap:5px;">Meus Gastos <span id="sbExpChev" style="font-size:.55rem;color:var(--text3);">▼</span></div>
+    <div class="sbar-val r" id="sbExp">R$ 0</div>
+    <div id="sbExpBreak" style="display:none;margin-top:6px;border-top:1px solid var(--border2);padding-top:6px;">
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
+        <span style="color:var(--text3);">👤 Eu</span><span style="color:var(--red-text);" id="sbBreakOtavio">R$ 0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
+        <span style="color:var(--text3);">💚 Amor</span><span style="color:var(--red-text);" id="sbBreakAmor">R$ 0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
+        <span style="color:var(--text3);">👩 Chirlei</span><span style="color:var(--red-text);" id="sbBreakChirlei">R$ 0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;">
+        <span style="color:var(--text3);">👩‍👦 Mãe</span><span style="color:var(--red-text);" id="sbBreakMae">R$ 0</span>
+      </div>
+    </div>
+  </div>
   <div class="sbar bal"><div class="sbar-lbl">Saldo</div><div class="sbar-val a" id="sbBal">R$ 0</div></div>
   <div class="sbar inv"><div class="sbar-lbl">Investido</div><div class="sbar-val p" id="sbInv">R$ 0</div></div>
 </div>
@@ -478,7 +495,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
             <button class="pay-btn" onclick="setDebtorFor('inc','amor',this)">💚 Amor</button>
             <button class="pay-btn" onclick="setDebtorFor('inc','chirlei',this)">👩 Chirlei</button>
             <button class="pay-btn" onclick="setDebtorFor('inc','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('inc','dividido',this)">🤝 Dividido</button>
+            <button class="pay-btn" onclick="setDebtorFor('inc','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;">
@@ -530,7 +547,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
             <button class="pay-btn" onclick="setDebtorFor('card','amor',this)">💚 Amor</button>
             <button class="pay-btn" onclick="setDebtorFor('card','chirlei',this)">👩 Chirlei</button>
             <button class="pay-btn" onclick="setDebtorFor('card','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('card','dividido',this)">🤝 Dividido</button>
+            <button class="pay-btn" onclick="setDebtorFor('card','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
           </div>
         </div>
         <!-- Parcelas -->
@@ -584,7 +601,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
             <button class="pay-btn" onclick="setDebtorFor('var','amor',this)">💚 Amor</button>
             <button class="pay-btn" onclick="setDebtorFor('var','chirlei',this)">👩 Chirlei</button>
             <button class="pay-btn" onclick="setDebtorFor('var','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('var','dividido',this)">🤝 Dividido</button>
+            <button class="pay-btn" onclick="setDebtorFor('var','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;">
@@ -811,7 +828,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
         <button type="button" class="pay-btn" onclick="setModalDebtor('amor',this)">💚 Amor</button>
         <button type="button" class="pay-btn" onclick="setModalDebtor('chirlei',this)">👩 Chirlei</button>
         <button type="button" class="pay-btn" onclick="setModalDebtor('mae',this)">👩‍👦 Mãe</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido</button>
+        <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
       </div>
     </div>
     <div class="modal-acts">
@@ -1078,9 +1095,43 @@ function totalsFor(y,m){
   const card=activeCards(y,m).reduce((s,x)=>s+x.value,0);
   const inv=D.investments.filter(x=>x.month===mKey(y,m)).reduce((s,x)=>s+x.value,0);
   const exp=varr+fix+card;
-  return{inc,varr,fix,card,inv,exp,bal:inc-exp-inv};
-}
 
+  // ── "Meus gastos" = otávio + fixas (sem debtor = otávio)
+  // Quando "dividido" é selecionado, criamos 2 entradas:
+  //   debtor:'otavio'  → minha metade  → entra em myExp
+  //   debtor:'dividido' → metade dela  → entra nos gastos do "Amor"
+  // Portanto: myExp = fixas + cartão/variável com debtor=otavio (ou sem debtor)
+  const isMyCard = c => !c.debtor || c.debtor==='otavio';
+  const isMyVar  = v => !v.debtor || v.debtor==='otavio';
+  const myCard   = activeCards(y,m).filter(isMyCard).reduce((s,x)=>s+x.value,0);
+  const myVar    = md.variable.filter(isMyVar).reduce((s,x)=>s+x.value,0);
+  const myExp    = myVar + fix + myCard;
+
+  // ── por pessoa (para o breakdown ao clicar)
+  // 'dividido' tagged items = parte da Amor (a outra metade dos itens divididos)
+  const byPerson = {otavio:0, amor:0, chirlei:0, mae:0};
+  byPerson['otavio'] += fix; // fixas = sempre do Otávio
+  activeCards(y,m).forEach(c=>{
+    const d = c.debtor||'otavio';
+    if(d==='otavio')         byPerson['otavio']  += c.value;
+    else if(d==='dividido')  byPerson['amor']    += c.value; // metade dela
+    else if(d==='amor')      byPerson['amor']    += c.value;
+    else if(d==='chirlei')   byPerson['chirlei'] += c.value;
+    else if(d==='mae')       byPerson['mae']     += c.value;
+    else                     byPerson['otavio']  += c.value;
+  });
+  md.variable.forEach(v=>{
+    const d = v.debtor||'otavio';
+    if(d==='otavio')         byPerson['otavio']  += v.value;
+    else if(d==='dividido')  byPerson['amor']    += v.value; // metade dela
+    else if(d==='amor')      byPerson['amor']    += v.value;
+    else if(d==='chirlei')   byPerson['chirlei'] += v.value;
+    else if(d==='mae')       byPerson['mae']     += v.value;
+    else                     byPerson['otavio']  += v.value;
+  });
+
+  return{inc,varr,fix,card,inv,exp,myExp,byPerson,bal:inc-myExp-inv};
+}
 // ── NAV ────────────────────────────────────────────────────────────────
 function changeMonth(d){viewM+=d;if(viewM<0){viewM=11;viewY--;}if(viewM>11){viewM=0;viewY++;}renderAll();}
 function goHome(){viewY=todayDate.getFullYear();viewM=todayDate.getMonth();renderAll();}
@@ -1104,22 +1155,39 @@ function goTab(t){
 }
 
 // ── SUMMARY ────────────────────────────────────────────────────────────
+let expBreakOpen = false;
+function toggleExpBreakdown(){
+  expBreakOpen = !expBreakOpen;
+  document.getElementById('sbExpBreak').style.display = expBreakOpen ? '' : 'none';
+  document.getElementById('sbExpChev').textContent = expBreakOpen ? '▲' : '▼';
+}
+
 function renderSummary(){
   const md=getMonth(viewY,viewM);
-  const{inc,exp,bal,inv}=totalsFor(viewY,viewM);
+  const{inc,myExp,byPerson,bal,inv}=totalsFor(viewY,viewM);
   document.getElementById('sbInc').textContent=fmt(inc);
-  document.getElementById('sbExp').textContent=fmt(exp);
+  // "Gastos" = meus gastos (otávio) + fixas — NÃO inclui a parte dela (dividido)
+  document.getElementById('sbExp').textContent=fmt(myExp);
   const bEl=document.getElementById('sbBal');
   bEl.textContent=(bal<0?'- ':'')+fmt(bal);
   bEl.className='sbar-val '+(bal>=0?'a':'r');
   document.getElementById('sbInv').textContent=fmt(inv);
-  // Progress bar: when filtering by "meus gastos" show only my variable share
-  let pctExp=exp;
-  if(debtorFilter==='otavio'){
-    const theirVar=md.variable.filter(x=>x.debtor&&x.debtor!=='otavio'&&x.debtor!=='dividido').reduce((s,x)=>s+x.value,0);
-    pctExp=exp-theirVar;
-  }
-  const pct=inc>0?Math.min(100,Math.round(pctExp/inc*100)):0;
+
+  // Breakdown por pessoa
+  document.getElementById('sbBreakOtavio').textContent  = fmt(byPerson['otavio']||0);
+  document.getElementById('sbBreakAmor').textContent    = fmt(byPerson['amor']||0);
+  document.getElementById('sbBreakChirlei').textContent = fmt(byPerson['chirlei']||0);
+  document.getElementById('sbBreakMae').textContent     = fmt(byPerson['mae']||0);
+
+  // Esconde linhas com zero no breakdown
+  ['Chirlei','Mae'].forEach(p=>{
+    const val = byPerson[p.toLowerCase()]||0;
+    const row = document.getElementById('sbBreak'+p).parentElement;
+    row.style.display = (expBreakOpen && val>0) ? '' : 'none';
+  });
+
+  // Progress bar: % da renda que são meus gastos
+  const pct=inc>0?Math.min(100,Math.round(myExp/inc*100)):0;
   document.getElementById('cPct').textContent=pct+'%';
   const bar=document.getElementById('commitBar');
   bar.style.width=pct+'%';
@@ -1373,7 +1441,9 @@ function renderDetail(){
 
   // ── Card — filtered by debtor when not "todos"
   let cards=activeCards(viewY,viewM);
-  if(df!=='todos') cards=cards.filter(c=>df==='otavio'?(!c.debtor||c.debtor==='otavio'):c.debtor===df);
+  if(df==='otavio')        cards=cards.filter(c=>!c.debtor||c.debtor==='otavio');
+  else if(df==='amor')     cards=cards.filter(c=>c.debtor==='amor'||c.debtor==='dividido');
+  else if(df!=='todos')    cards=cards.filter(c=>c.debtor===df);
   const cardTotal=cards.reduce((s,x)=>s+x.value,0);
   document.getElementById('dCardT').textContent=fmt(cardTotal);
   const cardEl=document.getElementById('dCardL');
@@ -1401,10 +1471,11 @@ function renderDetail(){
   let myItems;
   if(df==='todos')         myItems=allVar;
   else if(df==='otavio')   myItems=allVar.filter(x=>!x.debtor||x.debtor==='otavio');
+  else if(df==='amor')     myItems=allVar.filter(x=>x.debtor==='amor'||x.debtor==='dividido');
   else if(df==='dividido') myItems=allVar.filter(x=>x.debtor==='dividido');
   else                     myItems=allVar.filter(x=>x.debtor===df);
 
-  const titleMap={todos:'Todos os gastos variáveis',otavio:'Meus gastos variáveis',amor:'Gastos — Amor',chirlei:'Gastos — Chirlei',mae:'Gastos — Mãe',dividido:'Gastos divididos'};
+  const titleMap={todos:'Todos os gastos variáveis',otavio:'Meus gastos variáveis',amor:'Gastos — Amor (incluindo divididos)',chirlei:'Gastos — Chirlei',mae:'Gastos — Mãe',dividido:'Gastos divididos'};
   document.getElementById('dVarTitle').textContent=titleMap[df]||'Gastos variáveis';
 
   const myTotal=myItems.reduce((s,x)=>s+x.value,0);
