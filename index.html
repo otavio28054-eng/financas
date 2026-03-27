@@ -101,6 +101,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 
 .summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:1.1rem 0;border-bottom:1px solid var(--border);}
 .sbar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;position:relative;overflow:hidden;}
+.sbar.exp{overflow:visible;}
 .sbar::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
 .sbar.inc::after{background:var(--green);}.sbar.exp::after{background:var(--red);}
 .sbar.bal::after{background:var(--amber);}.sbar.inv::after{background:var(--purple);}
@@ -108,6 +109,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 .sbar-val{font-size:1rem;font-weight:700;letter-spacing:-.02em;}
 .sbar-val.g{color:var(--green-text);}.sbar-val.r{color:var(--red-text);}
 .sbar-val.a{color:var(--amber-text);}.sbar-val.p{color:var(--purple);}
+.sbbreak-row{display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:4px;gap:6px;}
+.sbbreak-row:last-child{margin-bottom:0;}
+.sbbreak-name{color:var(--text3);white-space:nowrap;flex-shrink:0;}
+.sbbreak-val{color:var(--red-text);white-space:nowrap;text-align:right;}
 
 .tabs{display:flex;padding:.9rem 0 0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;}
 .tab{padding:.55rem 1rem;font-size:.76rem;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;white-space:nowrap;flex-shrink:0;}
@@ -431,17 +436,17 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     <div class="sbar-lbl" style="display:flex;align-items:center;gap:5px;">Meus Gastos <span id="sbExpChev" style="font-size:.55rem;color:var(--text3);">▼</span></div>
     <div class="sbar-val r" id="sbExp">R$ 0</div>
     <div id="sbExpBreak" style="display:none;margin-top:6px;border-top:1px solid var(--border2);padding-top:6px;">
-      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
-        <span style="color:var(--text3);">👤 Eu</span><span style="color:var(--red-text);" id="sbBreakOtavio">R$ 0</span>
+      <div class="sbbreak-row">
+        <span class="sbbreak-name">👤 Eu</span><span class="sbbreak-val" id="sbBreakOtavio">R$ 0,00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
-        <span style="color:var(--text3);">💚 Amor</span><span style="color:var(--red-text);" id="sbBreakAmor">R$ 0</span>
+      <div class="sbbreak-row">
+        <span class="sbbreak-name">💚 Amor</span><span class="sbbreak-val" id="sbBreakAmor">R$ 0,00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;margin-bottom:3px;">
-        <span style="color:var(--text3);">👩 Chirlei</span><span style="color:var(--red-text);" id="sbBreakChirlei">R$ 0</span>
+      <div class="sbbreak-row">
+        <span class="sbbreak-name">👩 Chirlei</span><span class="sbbreak-val" id="sbBreakChirlei">R$ 0,00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.6rem;">
-        <span style="color:var(--text3);">👩‍👦 Mãe</span><span style="color:var(--red-text);" id="sbBreakMae">R$ 0</span>
+      <div class="sbbreak-row">
+        <span class="sbbreak-name">👩‍👦 Mãe</span><span class="sbbreak-val" id="sbBreakMae">R$ 0,00</span>
       </div>
     </div>
   </div>
@@ -1179,13 +1184,6 @@ function renderSummary(){
   document.getElementById('sbBreakChirlei').textContent = fmt(byPerson['chirlei']||0);
   document.getElementById('sbBreakMae').textContent     = fmt(byPerson['mae']||0);
 
-  // Esconde linhas com zero no breakdown
-  ['Chirlei','Mae'].forEach(p=>{
-    const val = byPerson[p.toLowerCase()]||0;
-    const row = document.getElementById('sbBreak'+p).parentElement;
-    row.style.display = (expBreakOpen && val>0) ? '' : 'none';
-  });
-
   // Progress bar: % da renda que são meus gastos
   const pct=inc>0?Math.min(100,Math.round(myExp/inc*100)):0;
   document.getElementById('cPct').textContent=pct+'%';
@@ -1296,11 +1294,11 @@ function quickAddTyped(type){
       const startMonth=mKey(startY,startM);
       if(st.debtor==='dividido'){
         const half=parseFloat((value/2).toFixed(2));
-        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name});
-        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
         toast('Parcela dividida! '+fmt(half)+' pra cada.');
       } else {
-        D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:st.debtor});
+        D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:st.debtor,_addedTs:Date.now()});
         toast(pa>1?'Parcela retroativa lançada! 1/'+pt:'Parcela lançada! 1/'+pt);
       }
       document.getElementById('qPA_card').value='';
@@ -1309,11 +1307,11 @@ function quickAddTyped(type){
     } else {
       if(st.debtor==='dividido'){
         const half=parseFloat((value/2).toFixed(2));
-        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name});
-        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'dividido',dividedFrom:name});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
+        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
         toast('Fixa dividida! '+fmt(half)+' pra cada.');
       } else {
-        D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:st.debtor});
+        D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:st.debtor,_addedTs:Date.now()});
         toast('Cartão fixo adicionado!');
       }
     }
@@ -1357,8 +1355,9 @@ let qPayment='black', qDebtor='otavio';
 function renderQuick(){
   const md=getMonth(viewY,viewM);
   const cards=activeCards(viewY,viewM);
-  // Cards recebem data virtual do dia 1 do mês pra ordenar junto com os outros
-  const cardItems=cards.map(c=>({...c,_isCard:true,date:mKey(viewY,viewM)+'-01',ts:-1}));
+  const isCurrentMonth = viewY===todayDate.getFullYear() && viewM===todayDate.getMonth();
+  const cardDate = isCurrentMonth ? todayStr() : mKey(viewY,viewM)+'-01';
+  const cardItems=cards.map(c=>({...c,_isCard:true,date:cardDate,ts:c._addedTs||1}));
   const all=[...md.income,...md.variable,...cardItems].sort((a,b)=>{
     const da=a.date||'',db=b.date||'';
     if(da!==db)return da<db?1:-1;
