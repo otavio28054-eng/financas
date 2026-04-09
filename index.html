@@ -529,11 +529,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     <div id="qform-card" class="qform-panel" style="display:none;">
       <div class="qsection">
         <div class="qsection-title red">💳 Cartão de Crédito</div>
-        <div class="qfields cols3" style="align-items:end;margin-bottom:10px;">
+        <div class="qfields cols4" style="align-items:end;margin-bottom:10px;">
+          <div class="qf"><label>Data da compra</label><input type="date" id="qDate_card" oninput="updateCardFaturaPreview();calcEndMonthCard();"></div>
           <div class="qf"><label>Descrição</label><input type="text" id="qName_card" placeholder="Ex: Nike, Dentista..."></div>
           <div class="qf"><label>Valor da parcela R$</label><input type="number" id="qVal_card" step="0.01" min="0" placeholder="0,00"></div>
           <div class="qf"><label>Categoria</label><select id="qCat_card"></select></div>
         </div>
+        <!-- Preview da fatura -->
+        <div id="cardFaturaPreview" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);"></div>
         <!-- Cartão usado -->
         <div style="margin-bottom:10px;">
           <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
@@ -791,51 +794,76 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 <!-- MODAL -->
 <div class="overlay" id="overlay" onclick="closeBg(event)">
   <div class="modal">
-    <div class="modal-title" id="mTitle">Adicionar</div>
-    <div class="field"><label>Data</label><input type="date" id="fDate"></div>
-    <div class="field"><label>Descrição</label><input type="text" id="fName" placeholder="Nome"></div>
-    <div class="f2">
-      <div class="field"><label>Valor R$</label><input type="number" id="fVal" step="0.01" min="0"></div>
-      <div class="field" id="fDayW"><label>Dia vencimento</label><input type="number" id="fDay" min="1" max="31" placeholder="—"></div>
+    <div class="modal-title" id="mTitle">Editar lançamento</div>
+
+    <!-- Tipo de lançamento -->
+    <div class="field" id="mTypeRow">
+      <label>Tipo de lançamento</label>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;">
+        <button type="button" class="pay-btn" id="mTypeBtn_income"  onclick="setModalType('income',this)">💰 Renda</button>
+        <button type="button" class="pay-btn" id="mTypeBtn_fixed"   onclick="setModalType('fixed',this)">📌 Fixa</button>
+        <button type="button" class="pay-btn" id="mTypeBtn_card"    onclick="setModalType('card',this)">💳 Cartão</button>
+        <button type="button" class="pay-btn" id="mTypeBtn_variable" onclick="setModalType('variable',this)">🛒 Variável</button>
+      </div>
     </div>
+
+    <!-- Campos comuns -->
+    <div class="f2" style="margin-top:.6rem;">
+      <div class="field"><label>Descrição</label><input type="text" id="fName" placeholder="Nome"></div>
+      <div class="field"><label>Valor R$</label><input type="number" id="fVal" step="0.01" min="0"></div>
+    </div>
+
+    <!-- Data (renda, variável) -->
+    <div class="field" id="fDateW"><label>Data</label><input type="date" id="fDate"></div>
+
+    <!-- Dia vencimento (fixa) -->
+    <div class="field" id="fDayW" style="display:none;"><label>Dia vencimento</label><input type="number" id="fDay" min="1" max="31" placeholder="—"></div>
+
+    <!-- Categoria -->
     <div class="field" id="fCatW"><label>Categoria</label><select id="fCat"></select></div>
-    <div id="cardX" style="display:none;">
+
+    <!-- Cartão: data compra + tipo + parcelas -->
+    <div id="mCardFields" style="display:none;">
+      <div class="field"><label>Data da compra</label><input type="date" id="fDateCard" oninput="calcModalEnd()"></div>
       <div class="field">
         <label>Tipo</label>
-        <select id="fTipo" onchange="tglPar()">
-          <option value="fixa">Fixa mensal</option>
-          <option value="parcelada">Parcelada</option>
-        </select>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button type="button" class="pay-btn active" id="mTipoBtn_fixa"      onclick="setModalTipo('fixa',this)">🔄 Fixa mensal</button>
+          <button type="button" class="pay-btn"        id="mTipoBtn_parcelada" onclick="setModalTipo('parcelada',this)">🗓️ Parcelada</button>
+        </div>
       </div>
-      <div class="f2" id="parRow" style="display:none;">
+      <div class="f2" id="mParRow" style="display:none;">
         <div class="field"><label>Parcela atual</label><input type="number" id="fPA" min="1" oninput="calcModalEnd()"></div>
         <div class="field"><label>Total parcelas</label><input type="number" id="fPT" min="1" oninput="calcModalEnd()"></div>
       </div>
-      <div class="par-info" id="mParInfo"></div>
+      <div class="par-info" id="mParInfo" style="margin-bottom:.5rem;"></div>
     </div>
-    <!-- Meio de pagamento no modal -->
+
+    <!-- Cartão usado (cartão e variável com cartão) -->
     <div id="fPayW" style="display:none;margin-bottom:.8rem;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;" id="fPayLabel">Cartão</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fPayBtns">
         <button type="button" class="pay-btn" onclick="setModalPayment('black',this)">💳 Black</button>
         <button type="button" class="pay-btn" onclick="setModalPayment('master',this)">💳 Master</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('mercadopago',this)">💳 MP</button>
+        <button type="button" class="pay-btn" onclick="setModalPayment('mercadopago',this)">💳 Mercado Pago</button>
         <button type="button" class="pay-btn" onclick="setModalPayment('debito',this)">🏦 Débito</button>
         <button type="button" class="pay-btn" onclick="setModalPayment('pix',this)">⚡ Pix</button>
         <button type="button" class="pay-btn" onclick="setModalPayment('gabi',this)">💳 Gabi</button>
       </div>
     </div>
-    <!-- De quem é o débito no modal -->
+
+    <!-- Quem pagou -->
     <div id="fDebtorW" style="display:none;margin-bottom:.8rem;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">De quem é o débito</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem pagou</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fDebtorBtns">
         <button type="button" class="pay-btn" onclick="setModalDebtor('otavio',this)">👤 Otávio</button>
         <button type="button" class="pay-btn" onclick="setModalDebtor('amor',this)">💚 Amor</button>
         <button type="button" class="pay-btn" onclick="setModalDebtor('chirlei',this)">👩 Chirlei</button>
         <button type="button" class="pay-btn" onclick="setModalDebtor('mae',this)">👩‍👦 Mãe</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
+        <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido</button>
       </div>
     </div>
+
     <div class="modal-acts">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-save" onclick="saveModal()">Salvar</button>
@@ -849,6 +877,38 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 const PAY_LABELS={'black':'💳 Black','master':'💳 Master','mercadopago':'💳 MP','debito':'🏦 Débito','pix':'⚡ Pix','gabi':'💳 Gabi'};
 const DEBTOR_LABELS={'otavio':'Otávio','amor':'Amor','chirlei':'Chirlei','mae':'Mãe','dividido':'Dividido'};
 const DEBTOR_EMOJI={'otavio':'👤','amor':'💚','chirlei':'👩','mae':'👩‍👦','dividido':'🤝'};
+
+// ── CARD BILLING CONFIG ────────────────────────────────────────────────
+// closingDay: se o dia da compra > closingDay → entra na fatura do mês seguinte
+const CARD_CONFIG={
+  black:       {closingDay:10, payDay:10},
+  master:      {closingDay:24, payDay:4},
+  mercadopago: {closingDay:5,  payDay:10},
+  gabi:        {closingDay:6,  payDay:12},
+  debito:      {closingDay:null},
+  pix:         {closingDay:null},
+};
+
+// Retorna o mKey (YYYY-MM) do mês em que a compra vai cair na fatura
+function billMonth(paymentKey, dateStr){
+  const cfg=CARD_CONFIG[paymentKey];
+  if(!cfg||cfg.closingDay===null)return null;
+  const[y,m,d]=dateStr.split('-').map(Number);
+  if(d>cfg.closingDay){
+    const nm=m===12?1:m+1, ny=m===12?y+1:y;
+    return ny+'-'+String(nm).padStart(2,'0');
+  }
+  return y+'-'+String(m).padStart(2,'0');
+}
+
+// Texto amigável: "Fatura Abril/25 · paga dia 10"
+function billMonthLabel(paymentKey, dateStr){
+  const cfg=CARD_CONFIG[paymentKey];
+  if(!cfg||cfg.closingDay===null)return null;
+  const bm=billMonth(paymentKey,dateStr);
+  const[y,m]=bm.split('-').map(Number);
+  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2)+(cfg.payDay?' · paga dia '+cfg.payDay:'');
+}
 
 // ── CATEGORIES ─────────────────────────────────────────────────────────
 const CATS=[
@@ -935,6 +995,7 @@ async function startApp(){
   buildSel('qCat_inc','salario');buildSel('qCat_fix','outros');buildSel('qCat_card','outros');buildSel('qCat_var','mercado');
   buildSel('fCat','outros');
   document.getElementById('qDate_inc').value=todayStr();
+  document.getElementById('qDate_card').value=todayStr();
   document.getElementById('qDate_var').value=todayStr();
   document.getElementById('iMonth').value=mKey(todayDate.getFullYear(),todayDate.getMonth());
 
@@ -1217,6 +1278,18 @@ function setPayFor(type, val, btn){
   qState[type].payment = val;
   document.querySelectorAll('#qPayBtns_'+type+' .pay-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(type==='card') updateCardFaturaPreview();
+}
+
+function updateCardFaturaPreview(){
+  const dateStr = document.getElementById('qDate_card').value;
+  const pay = qState.card.payment;
+  const el = document.getElementById('cardFaturaPreview');
+  if(!dateStr || !pay){el.style.display='none';return;}
+  const label = billMonthLabel(pay, dateStr);
+  if(!label){el.style.display='none';return;}
+  el.textContent = label;
+  el.style.display = '';
 }
 function setDebtorFor(type, val, btn){
   qState[type].debtor = val;
@@ -1229,18 +1302,23 @@ function setCardTipo(tipo, btn){
   btn.classList.add('active');
   document.getElementById('qParFields').style.display = tipo==='par' ? '' : 'none';
   if(tipo==='par') calcEndMonthCard();
+  updateCardFaturaPreview();
 }
 
 function calcEndMonthCard(){
   const pa=parseInt(document.getElementById('qPA_card').value)||null;
   const pt=parseInt(document.getElementById('qPT_card').value)||null;
   if(!pa||!pt){document.getElementById('parInfo_card').textContent='';return;}
-  let startY=viewY, startM=viewM-(pa-1);
+  const dateCard=document.getElementById('qDate_card').value||todayStr();
+  const faturaBase=billMonth(qState.card.payment,dateCard)||mKey(viewY,viewM);
+  const[fy,fm]=faturaBase.split('-').map(Number);
+  let startY=fy, startM=fm-1-(pa-1);
   while(startM<0){startM+=12;startY--;}
   const startMonth=mKey(startY,startM);
   const end=addMonths(startMonth,1,pt);
-  const retroTxt=pa>1?` · retroativo desde ${MESES[startM].slice(0,3)}/${String(startY).slice(2)}`:'';
-  document.getElementById('parInfo_card').textContent=end?'Termina em: '+end+retroTxt:'';
+  const fatura1=MESES[fm-1]+'/'+String(fy).slice(2);
+  const retroTxt=pa>1?' · retro desde '+MESES[startM].slice(0,3)+'/'+String(startY).slice(2):'';
+  document.getElementById('parInfo_card').textContent=end?'1ª parcela: '+fatura1+' · Termina: '+end+retroTxt:'';
 }
 
 function quickAddTyped(type){
@@ -1282,29 +1360,40 @@ function quickAddTyped(type){
     const name=document.getElementById('qName_card').value.trim();
     const value=parseFloat(document.getElementById('qVal_card').value);
     const cat=document.getElementById('qCat_card').value;
+    const dateCard=document.getElementById('qDate_card').value||todayStr();
     if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
-    const tipo = st.tipo==='par'?'parcelada':'fixa';
+    const tipo=st.tipo==='par'?'parcelada':'fixa';
+
+    // Calcula o mês de início baseado na data + fechamento do cartão
+    // Para parcelada: startMonth = mês da fatura da 1ª parcela (ajustado pelo fechamento)
+    // Para fixa: startMonth não é usado (tipo='fixa' aparece sempre), mas gravamos o payDay
+    const faturaBase = billMonth(st.payment, dateCard) || mKey(viewY,viewM);
+
     if(tipo==='parcelada'){
       const pa=parseInt(document.getElementById('qPA_card').value)||0;
       const pt=parseInt(document.getElementById('qPT_card').value)||0;
       if(pt<1){toast('Informe o total de parcelas.');return;}
       if(pa<1){toast('Informe a parcela atual.');return;}
-      let startY=viewY, startM=viewM-(pa-1);
+      // startMonth = retroagir (pa-1) meses a partir do mês da fatura da compra
+      const [fy,fm]=faturaBase.split('-').map(Number);
+      let startY=fy, startM=fm-1-(pa-1); // fm-1 = índice 0-based
       while(startM<0){startM+=12;startY--;}
       const startMonth=mKey(startY,startM);
+      const faturaLabel=billMonthLabel(st.payment,dateCard)||'';
       if(st.debtor==='dividido'){
         const half=parseFloat((value/2).toFixed(2));
         D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
         D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
-        toast('Parcela dividida! '+fmt(half)+' pra cada.');
+        toast('Parcela dividida! '+fmt(half)+' pra cada. '+faturaLabel);
       } else {
         D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:st.debtor,_addedTs:Date.now()});
-        toast(pa>1?'Parcela retroativa lançada! 1/'+pt:'Parcela lançada! 1/'+pt);
+        toast((pa>1?'Parcela retroativa! ':'Parcela lançada! ')+'1/'+pt+' · '+faturaLabel);
       }
       document.getElementById('qPA_card').value='';
       document.getElementById('qPT_card').value='';
       document.getElementById('parInfo_card').textContent='';
     } else {
+      // Fixa mensal — não tem fechamento relevante, começa no mês atual
       if(st.debtor==='dividido'){
         const half=parseFloat((value/2).toFixed(2));
         D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
@@ -1325,14 +1414,22 @@ function quickAddTyped(type){
     const cat=document.getElementById('qCat_var').value;
     const date=document.getElementById('qDate_var').value||todayStr();
     if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
+
+    // Se o meio de pagamento for cartão de crédito, verifica se cai no mês atual ou no seguinte
+    const faturaM = billMonth(st.payment, date);
+    const [vy,vm] = faturaM ? faturaM.split('-').map(Number) : [viewY, viewM+1];
+    const targetY = faturaM ? vy : viewY;
+    const targetM = faturaM ? vm-1 : viewM; // converter para índice 0-based
+    const faturaLabel = faturaM ? ' · '+billMonthLabel(st.payment,date) : '';
+
     if(st.debtor==='dividido'){
       const half=parseFloat((value/2).toFixed(2));
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:st.payment,debtor:'otavio',dividedFrom:name});
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:st.payment,debtor:'dividido',dividedFrom:name});
-      toast('Dividido! '+fmt(half)+' pra cada.');
+      getMonth(targetY,targetM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now(),payment:st.payment,debtor:'otavio',dividedFrom:name});
+      getMonth(targetY,targetM).variable.unshift({id:uid(),name,value:half,cat,date,ts:Date.now()+1,payment:st.payment,debtor:'dividido',dividedFrom:name});
+      toast('Dividido! '+fmt(half)+' pra cada.'+faturaLabel);
     } else {
-      getMonth(viewY,viewM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:st.payment,debtor:st.debtor});
-      toast('Lançado!');
+      getMonth(targetY,targetM).variable.unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:st.payment,debtor:st.debtor});
+      toast('Lançado!'+faturaLabel);
     }
     document.getElementById('qName_var').value='';
     document.getElementById('qVal_var').value='';
@@ -1438,7 +1535,7 @@ function renderDetail(){
     </div>`;
   }).join(''):'<div class="empty">nenhuma despesa fixa</div>';
 
-  // ── Card — filtered by debtor when not "todos"
+  // ── Card — agrupado por cartão, filtrado por devedor
   let cards=activeCards(viewY,viewM);
   if(df==='otavio')        cards=cards.filter(c=>!c.debtor||c.debtor==='otavio');
   else if(df==='amor')     cards=cards.filter(c=>c.debtor==='amor'||c.debtor==='dividido');
@@ -1446,24 +1543,55 @@ function renderDetail(){
   const cardTotal=cards.reduce((s,x)=>s+x.value,0);
   document.getElementById('dCardT').textContent=fmt(cardTotal);
   const cardEl=document.getElementById('dCardL');
-  cardEl.innerHTML=cards.length?cards.map(item=>{
-    const c=catMap[item.cat]||{c:'#888',l:'?'};
-    const info=cardInfo(item,viewY,viewM);
-    const end=item.tipo==='parcelada'?addMonths(item.startMonth,item.pa,item.pt):null;
-    const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-    return`<div class="iitem">
-      <div class="cdot" style="background:${c.c}"></div>
-      <div class="iitem-main">
-        <div class="iitem-name">${item.name}${debtorTag}</div>
-        <div class="iitem-sub">${c.l} · ${info}${end?' · até '+end:''}${item.payment?' · '+PAY_LABELS[item.payment]:''}</div>
-      </div>
-      <div class="iitem-val r">- ${fmt(item.value)}</div>
-      <div class="iitem-acts">
-        <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
-        <button class="bi" onclick="delCard('${item.id}')">✕</button>
-      </div>
-    </div>`;
-  }).join(''):'<div class="empty">nenhuma parcela'+(df!=='todos'?' para este filtro':'')+' </div>';
+  if(!cards.length){
+    cardEl.innerHTML='<div class="empty">nenhuma parcela'+(df!=='todos'?' para este filtro':'')+'</div>';
+  } else {
+    // Agrupa por cartão (payment). Sem payment = 'outros'
+    const cardOrder=['black','master','mercadopago','gabi','outros'];
+    const groups={};
+    cards.forEach(item=>{
+      const key=item.payment||'outros';
+      if(!groups[key])groups[key]=[];
+      groups[key].push(item);
+    });
+    const cardNames={black:'💳 Black',master:'💳 Master',mercadopago:'💳 Mercado Pago',gabi:'💳 Gabi',outros:'💳 Outros'};
+    const cardColors={black:'var(--blue)',master:'var(--amber)',mercadopago:'var(--green)',gabi:'var(--purple)',outros:'var(--text2)'};
+    let html='';
+    cardOrder.filter(k=>groups[k]).forEach(key=>{
+      const groupItems=groups[key];
+      const groupTotal=groupItems.reduce((s,x)=>s+x.value,0);
+      const cfg=CARD_CONFIG[key];
+      const closingInfo=cfg&&cfg.closingDay?` · fecha dia ${cfg.closingDay} · paga dia ${cfg.payDay}`:'';
+      html+=`<div style="margin-bottom:.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.45rem .95rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px 8px 0 0;">
+          <span style="font-family:'DM Mono',monospace;font-size:.62rem;font-weight:600;color:${cardColors[key]};">${cardNames[key]}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--text3);">${closingInfo}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);font-weight:600;">- ${fmt(groupTotal)}</span>
+        </div>
+        <div style="border:1px solid var(--border2);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
+          ${groupItems.map(item=>{
+            const c=catMap[item.cat]||{c:'#888',l:'?'};
+            const info=cardInfo(item,viewY,viewM);
+            const end=item.tipo==='parcelada'?addMonths(item.startMonth,item.pa,item.pt):null;
+            const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+            return`<div class="iitem">
+              <div class="cdot" style="background:${c.c}"></div>
+              <div class="iitem-main">
+                <div class="iitem-name">${item.name}${debtorTag}</div>
+                <div class="iitem-sub">${c.l} · ${info}${end?' · até '+end:''}</div>
+              </div>
+              <div class="iitem-val r">- ${fmt(item.value)}</div>
+              <div class="iitem-acts">
+                <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
+                <button class="bi" onclick="delCard('${item.id}')">✕</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+    cardEl.innerHTML=html;
+  }
 
   // ── Variable: filter by debtor
   const allVar=md.variable;
@@ -1546,11 +1674,55 @@ function toggleVcat(hd){
 let mCtx=null;
 let mPayment='black';
 let mDebtor='otavio';
+let mTipo='fixa';
+
+// ── Modal type switching ──────────────────────────────────────────────
+function setModalType(type, btn){
+  mCtx={...mCtx, type};
+  document.querySelectorAll('#mTypeRow .pay-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _applyModalType(type);
+}
+function _applyModalType(type){
+  // date field
+  document.getElementById('fDateW').style.display    = (type==='income'||type==='variable')?'':'none';
+  // day field (fixed only)
+  document.getElementById('fDayW').style.display     = type==='fixed'?'':'none';
+  // category (all except card hidden — card already has category)
+  document.getElementById('fCatW').style.display     = type!=='card'?'':'none';
+  // card-specific fields
+  document.getElementById('mCardFields').style.display = type==='card'?'':'none';
+  // payment: card = only credit cards; variable = all; income/fixed = hidden
+  const showPay = type==='card'||type==='variable';
+  document.getElementById('fPayW').style.display = showPay?'':'none';
+  if(type==='card'){
+    // show only credit card buttons, hide debito/pix
+    document.querySelectorAll('#fPayBtns .pay-btn').forEach(b=>{
+      const v=b.getAttribute('onclick').match(/'([^']+)'/)?.[1];
+      b.style.display=(v==='debito'||v==='pix')?'none':'';
+    });
+    document.getElementById('fPayLabel').textContent='Qual cartão';
+  } else {
+    document.querySelectorAll('#fPayBtns .pay-btn').forEach(b=>b.style.display='');
+    document.getElementById('fPayLabel').textContent='Meio de pagamento';
+  }
+  // debtor: all types except fixed show person selector
+  document.getElementById('fDebtorW').style.display = type!=='fixed'?'':'none';
+}
+
+function setModalTipo(tipo, btn){
+  mTipo=tipo;
+  document.querySelectorAll('#mCardFields .pay-btn[id^="mTipoBtn"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mParRow').style.display=tipo==='parcelada'?'':'none';
+  calcModalEnd();
+}
 
 function setModalPayment(val,btn){
   mPayment=val;
   document.querySelectorAll('#fPayBtns .pay-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  calcModalEnd();
 }
 function setModalDebtor(val,btn){
   mDebtor=val;
@@ -1571,40 +1743,50 @@ function _setModalDebtorVal(val){
     b.classList.toggle('active',bval===mDebtor);
   });
 }
-function _showPayDebtor(show){
-  document.getElementById('fPayW').style.display=show?'':'none';
-  document.getElementById('fDebtorW').style.display=show?'':'none';
+function _setModalTipoVal(val){
+  mTipo=val||'fixa';
+  document.getElementById('mTipoBtn_fixa').classList.toggle('active',mTipo==='fixa');
+  document.getElementById('mTipoBtn_parcelada').classList.toggle('active',mTipo==='parcelada');
+  document.getElementById('mParRow').style.display=mTipo==='parcelada'?'':'none';
 }
+function _setModalTypeBtn(type){
+  document.querySelectorAll('#mTypeRow .pay-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('mTypeBtn_'+type);
+  if(btn)btn.classList.add('active');
+}
+
 function openNew(defaultCat,type='variable'){
   mCtx={type,id:null};
-  document.getElementById('mTitle').textContent='Adicionar — '+{income:'Renda',fixed:'Despesa fixa',card:'Cartão',variable:'Gasto variável'}[type];
+  document.getElementById('mTitle').textContent='Adicionar';
   ['fName','fVal','fDay','fPA','fPT'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('fDate').value=todayStr();
-  document.getElementById('fTipo').value='fixa';
+  document.getElementById('fDateCard').value=todayStr();
   buildSel('fCat',defaultCat);
-  document.getElementById('fDayW').style.display=type==='fixed'?'':'none';
-  document.getElementById('fCatW').style.display=type==='card'?'none':'';
-  document.getElementById('cardX').style.display=type==='card'?'':'none';
-  document.getElementById('parRow').style.display='none';
+  _setModalTypeBtn(type);
+  _applyModalType(type);
+  _setModalTipoVal('fixa');
+  _setModalPaymentVal('black');
+  _setModalDebtorVal('otavio');
   document.getElementById('mParInfo').textContent='';
-  const showPD=type==='variable'||type==='income';
-  _showPayDebtor(showPD);
-  if(showPD){_setModalPaymentVal('black');_setModalDebtorVal('otavio');}
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('fName').focus(),80);
 }
 function openEdit(id,list){
-  const md=getMonth(viewY,viewM);const item=md[list].find(x=>x.id===id);if(!item)return;
+  const md=getMonth(viewY,viewM);
+  const item=md[list].find(x=>x.id===id);if(!item)return;
   mCtx={type:list,id};
   document.getElementById('mTitle').textContent='Editar lançamento';
-  document.getElementById('fName').value=item.name;document.getElementById('fVal').value=item.value;
+  document.getElementById('fName').value=item.name;
+  document.getElementById('fVal').value=item.value;
   document.getElementById('fDate').value=item.date||todayStr();
+  document.getElementById('fDateCard').value=item.date||todayStr();
   buildSel('fCat',item.cat);
-  document.getElementById('fDayW').style.display='none';document.getElementById('fCatW').style.display='';
-  document.getElementById('cardX').style.display='none';
-  _showPayDebtor(true);
+  _setModalTypeBtn(list);
+  _applyModalType(list);
+  _setModalTipoVal('fixa');
   _setModalPaymentVal(item.payment||'black');
   _setModalDebtorVal(item.debtor||'otavio');
+  document.getElementById('mParInfo').textContent='';
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('fName').focus(),80);
 }
@@ -1612,35 +1794,53 @@ function openEditFixed(id){
   const item=D.fixed.find(x=>x.id===id);if(!item)return;
   mCtx={type:'fixed',id};
   document.getElementById('mTitle').textContent='Editar despesa fixa';
-  document.getElementById('fName').value=item.name;document.getElementById('fVal').value=item.value;
-  document.getElementById('fDay').value=item.day||'';document.getElementById('fDate').value=todayStr();
+  document.getElementById('fName').value=item.name;
+  document.getElementById('fVal').value=item.value;
+  document.getElementById('fDay').value=item.day||'';
+  document.getElementById('fDate').value=todayStr();
   buildSel('fCat',item.cat);
-  document.getElementById('fDayW').style.display='';document.getElementById('fCatW').style.display='';
-  document.getElementById('cardX').style.display='none';
+  _setModalTypeBtn('fixed');
+  _applyModalType('fixed');
+  _setModalPaymentVal(item.payment||'black');
+  _setModalDebtorVal(item.debtor||'otavio');
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('fName').focus(),80);
 }
 function openEditCard(id){
   const item=D.card.find(x=>x.id===id);if(!item)return;
   mCtx={type:'card',id};
-  document.getElementById('mTitle').textContent='Editar parcela';
-  document.getElementById('fName').value=item.name;document.getElementById('fVal').value=item.value;
-  document.getElementById('fDate').value=todayStr();
-  document.getElementById('fTipo').value=item.tipo||'fixa';
-  document.getElementById('fPA').value=item.pa||'';document.getElementById('fPT').value=item.pt||'';
-  document.getElementById('parRow').style.display=item.tipo==='parcelada'?'':'none';
-  document.getElementById('fDayW').style.display='none';document.getElementById('fCatW').style.display='none';
-  document.getElementById('cardX').style.display='';
+  document.getElementById('mTitle').textContent='Editar cartão';
+  document.getElementById('fName').value=item.name;
+  document.getElementById('fVal').value=item.value;
+  document.getElementById('fDateCard').value=todayStr();
+  buildSel('fCat',item.cat||'outros');
+  _setModalTypeBtn('card');
+  _applyModalType('card');
+  _setModalTipoVal(item.tipo||'fixa');
+  document.getElementById('fPA').value=item.pa||'';
+  document.getElementById('fPT').value=item.pt||'';
+  _setModalPaymentVal(item.payment||'black');
+  _setModalDebtorVal(item.debtor||'otavio');
   calcModalEnd();
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('fName').focus(),80);
 }
-function tglPar(){document.getElementById('parRow').style.display=document.getElementById('fTipo').value==='parcelada'?'':'none';calcModalEnd();}
+function tglPar(){setModalTipo(mTipo==='fixa'?'parcelada':'fixa',null);}
 function calcModalEnd(){
+  if(mCtx&&mCtx.type!=='card'){return;}
   const pa=parseInt(document.getElementById('fPA').value)||null;
   const pt=parseInt(document.getElementById('fPT').value)||null;
-  const end=addMonths(mKey(viewY,viewM),pa,pt);
-  document.getElementById('mParInfo').textContent=end?'Termina em: '+end:'';
+  if(!pa||!pt){document.getElementById('mParInfo').textContent='';return;}
+  const dateCard=document.getElementById('fDateCard').value||todayStr();
+  const faturaBase=billMonth(mPayment,dateCard)||mKey(viewY,viewM);
+  const[fy,fm]=faturaBase.split('-').map(Number);
+  let sy=fy,sm=fm-1-(pa-1);
+  while(sm<0){sm+=12;sy--;}
+  const startMonth=mKey(sy,sm);
+  const end=addMonths(startMonth,1,pt);
+  const fatura1=MESES[fm-1]+'/'+String(fy).slice(2);
+  const retro=pa>1?' · retro desde '+MESES[sm].slice(0,3)+'/'+String(sy).slice(2):'';
+  document.getElementById('mParInfo').textContent=end?'1ª parcela: '+fatura1+' · Termina: '+end+retro:'';
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');mCtx=null;}
 function closeBg(e){if(e.target===document.getElementById('overlay'))closeModal();}
@@ -1648,23 +1848,46 @@ function saveModal(){
   const name=document.getElementById('fName').value.trim();
   const value=parseFloat(document.getElementById('fVal').value);
   if(!name||isNaN(value)||value<=0){toast('Preencha nome e valor.');return;}
-  const cat=document.getElementById('fCat').value;
+  const{type,id}=mCtx;
+  const cat=document.getElementById('fCat').value||'outros';
   const date=document.getElementById('fDate').value||todayStr();
   const day=parseInt(document.getElementById('fDay').value)||null;
-  const tipo=document.getElementById('fTipo').value;
+  const dateCard=document.getElementById('fDateCard').value||todayStr();
   const pa=parseInt(document.getElementById('fPA').value)||null;
   const pt=parseInt(document.getElementById('fPT').value)||null;
-  const{type,id}=mCtx;
+
   if(type==='fixed'){
     if(id){const i=D.fixed.findIndex(x=>x.id===id);if(i>-1)D.fixed[i]={...D.fixed[i],name,value,cat,day};}
     else D.fixed.push({id:uid(),name,value,cat,day});
+
   } else if(type==='card'){
-    if(id){const i=D.card.findIndex(x=>x.id===id);if(i>-1)D.card[i]={...D.card[i],name,value,tipo,pa,pt};}
-    else D.card.push({id:uid(),name,value,cat:'outros',tipo,pa,pt,startMonth:mKey(viewY,viewM)});
+    const faturaBase=billMonth(mPayment,dateCard)||mKey(viewY,viewM);
+    const[fy,fm]=faturaBase.split('-').map(Number);
+    let sy=fy,sm=fm-1-((pa||1)-1);
+    while(sm<0){sm+=12;sy--;}
+    const startMonth=mKey(sy,sm);
+    const cardObj={name,value,cat,tipo:mTipo,payment:mPayment,debtor:mDebtor,
+      ...(mTipo==='parcelada'?{pa:1,pt,startMonth}:{})};
+    if(id){const i=D.card.findIndex(x=>x.id===id);if(i>-1)D.card[i]={...D.card[i],...cardObj};}
+    else D.card.push({id:uid(),...cardObj,_addedTs:Date.now()});
+
   } else {
+    // income or variable — check if type changed (e.g. from income to variable)
     const md=getMonth(viewY,viewM);
-    if(id){const i=md[type].findIndex(x=>x.id===id);if(i>-1)md[type][i]={...md[type][i],name,value,cat,date,payment:mPayment,debtor:mDebtor};}
-    else md[type].unshift({id:uid(),name,value,cat,date,ts:Date.now(),payment:mPayment,debtor:mDebtor});
+    const fromList=id?(['income','variable'].find(l=>md[l].find(x=>x.id===id))):'';
+    const targetList=type==='income'?'income':'variable';
+    if(id&&fromList&&fromList!==targetList){
+      // move to correct list
+      md[fromList]=md[fromList].filter(x=>x.id!==id);
+    }
+    const obj={name,value,cat,date,payment:mPayment,debtor:mDebtor};
+    if(id){
+      const i=md[targetList].findIndex(x=>x.id===id);
+      if(i>-1)md[targetList][i]={...md[targetList][i],...obj};
+      else md[targetList].unshift({id,...obj,ts:Date.now()});
+    } else {
+      md[targetList].unshift({id:uid(),...obj,ts:Date.now()});
+    }
   }
   persist();renderAll();closeModal();toast(id?'Atualizado!':'Adicionado!');
 }
