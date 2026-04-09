@@ -624,6 +624,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     </div>
   </div>
   <div class="list-lbl" id="qListLbl">Lançamentos de —</div>
+  <!-- Filtro de tipo -->
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.75rem;">
+    <button class="df-btn active" id="qf-todos"    onclick="setQFilter('todos',this)">🔍 Todos</button>
+    <button class="df-btn"        id="qf-income"   onclick="setQFilter('income',this)">💰 Renda</button>
+    <button class="df-btn"        id="qf-fixed"    onclick="setQFilter('fixed',this)">📌 Fixa</button>
+    <button class="df-btn"        id="qf-card"     onclick="setQFilter('card',this)">💳 Cartão</button>
+    <button class="df-btn"        id="qf-variable" onclick="setQFilter('variable',this)">🛒 Variável</button>
+  </div>
   <div class="ilist" id="qList"><div class="empty">nenhum lançamento neste mês</div></div>
 </div>
 
@@ -1449,22 +1457,40 @@ function setDebtor(val,btn){setDebtorFor('var',val,btn);}
 function quickAdd(){quickAddTyped(qActiveType||'var');}
 let qPayment='black', qDebtor='otavio';
 
+let qFilter='todos';
+function setQFilter(val,btn){
+  qFilter=val;
+  document.querySelectorAll('#tab-quick .df-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderQuick();
+}
+
 function renderQuick(){
   const md=getMonth(viewY,viewM);
   const cards=activeCards(viewY,viewM);
   const isCurrentMonth = viewY===todayDate.getFullYear() && viewM===todayDate.getMonth();
   const cardDate = isCurrentMonth ? todayStr() : mKey(viewY,viewM)+'-01';
-  const cardItems=cards.map(c=>({...c,_isCard:true,date:cardDate,ts:c._addedTs||1}));
-  const all=[...md.income,...md.variable,...cardItems].sort((a,b)=>{
+  const cardItems=cards.map(c=>({...c,_isCard:true,_type:'card',date:cardDate,ts:c._addedTs||1}));
+  const incItems=md.income.map(x=>({...x,_type:'income'}));
+  const varItems=md.variable.map(x=>({...x,_type:'variable'}));
+
+  let all=[...incItems,...varItems,...cardItems].sort((a,b)=>{
     const da=a.date||'',db=b.date||'';
     if(da!==db)return da<db?1:-1;
     return (b.ts||0)-(a.ts||0);
   });
+
+  // Aplica filtro de tipo
+  if(qFilter==='income')   all=all.filter(x=>x._type==='income');
+  else if(qFilter==='fixed') all=all.filter(x=>x._type==='fixed'); // fixas não aparecem aqui, mas por consistência
+  else if(qFilter==='card')  all=all.filter(x=>x._type==='card');
+  else if(qFilter==='variable') all=all.filter(x=>x._type==='variable');
+
   const el=document.getElementById('qList');
-  if(!all.length){el.innerHTML='<div class="empty">nenhum lançamento neste mês</div>';return;}
+  if(!all.length){el.innerHTML='<div class="empty">nenhum lançamento'+(qFilter!=='todos'?' nesta categoria':'')+' neste mês</div>';return;}
   el.innerHTML=all.map(item=>{
     const c=catMap[item.cat]||{l:'?',c:'#888',t:'expense'};
-    const isInc=c.t==='income';
+    const isInc=item._type==='income';
     const isCard=item._isCard;
     const vc=isInc?'color:var(--green-text)':'color:var(--red-text)';
     const list=isInc?'income':'variable';
