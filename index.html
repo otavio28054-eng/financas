@@ -758,6 +758,16 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 
 <!-- TAB CARDS -->
 <div id="tab-cards" class="tab-content">
+  <!-- Navegação própria por fatura -->
+  <div class="month-nav" style="margin-bottom:.8rem;">
+    <button class="mnav-btn" onclick="changeCardFat(-1)">&#8592;</button>
+    <div class="mnav-center">
+      <div class="mnav-month" id="cardFatLabel">—</div>
+      <div class="mnav-year" id="cardFatPeriod">—</div>
+      <span class="mnav-home" onclick="goCardFatToday()">fatura atual</span>
+    </div>
+    <button class="mnav-btn" onclick="changeCardFat(1)">&#8594;</button>
+  </div>
   <div id="cardsOverview" class="cards-overview"></div>
   <div id="cardsPanels"></div>
 </div>
@@ -944,9 +954,9 @@ const DEBTOR_EMOJI={'otavio':'👤','amor':'💚','chirlei':'👩','mae':'👩�
 // closingDay: se o dia da compra > closingDay → entra na fatura do mês seguinte
 const CARD_CONFIG={
   black:       {closingDay:10, payDay:10},
-  master:      {closingDay:24, payDay:4},
-  mercadopago: {closingDay:5,  payDay:10},
-  gabi:        {closingDay:6,  payDay:12},
+  master:      {closingDay:4,  payDay:4},
+  mercadopago: {closingDay:5,  payDay:5},
+  gabi:        {closingDay:6,  payDay:6},
   debito:      {closingDay:null},
   pix:         {closingDay:null},
 };
@@ -1039,6 +1049,8 @@ const fmtDate=s=>{if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}
 let userCode='';
 let D={fixed:[],card:[],months:{},investments:[]};
 let saveTimer=null;
+// Navegação independente da aba Cartões (por fatura, não por mês)
+let cardFatY=todayDate.getFullYear(), cardFatM=todayDate.getMonth();
 
 // ── LOGIN ──────────────────────────────────────────────────────────────
 function doLogin(){
@@ -2311,191 +2323,228 @@ function toggleFaturaPaid(cardKey, y, m){
   persist();renderCards();
 }
 
+// ── CARDS TAB — navegação por fatura ─────────────────────────────────
+function changeCardFat(d){
+  cardFatM+=d;
+  if(cardFatM<0){cardFatM=11;cardFatY--;}
+  if(cardFatM>11){cardFatM=0;cardFatY++;}
+  renderCards();
+}
+function goCardFatToday(){
+  cardFatY=todayDate.getFullYear();
+  cardFatM=todayDate.getMonth();
+  renderCards();
+}
+
+// Período real de uma fatura dado o dia de fechamento
+// Fatura de Abril com closingDay=10 → 11/Mar a 10/Abr
+function faturaPeriod(closingDay, fatY, fatM){
+  const endD=closingDay, endM=fatM, endY=fatY;
+  let startM=fatM-1, startY=fatY;
+  if(startM<0){startM=11;startY--;}
+  const startD=closingDay+1;
+  return{startY,startM,startD,endY,endM,endD};
+}
+
+// Checa se uma data "YYYY-MM-DD" cai dentro do período da fatura
+function dateInFatura(dateStr,closingDay,fatY,fatM){
+  if(!dateStr)return false;
+  const{startY,startM,startD,endY,endM,endD}=faturaPeriod(closingDay,fatY,fatM);
+  const[y,m,d]=dateStr.split('-').map(Number);
+  const dt=y*10000+m*100+d;
+  const s=startY*10000+(startM+1)*100+startD;
+  const e=endY*10000+(endM+1)*100+endD;
+  return dt>=s&&dt<=e;
+}
+
+// Busca variáveis de um cartão que caem no período real da fatura
+// Olha nos dois meses do calendário que o período abrange
+function varItemsInFatura(key,closingDay,fatY,fatM){
+  let prevM=fatM-1,prevY=fatY;
+  if(prevM<0){prevM=11;prevY--;}
+  const mdPrev=getMonth(prevY,prevM);
+  const mdCur=getMonth(fatY,fatM);
+  const allVar=[...(mdPrev.variable||[]),...(mdCur.variable||[])];
+  const seen=new Set();
+  return allVar.filter(v=>{
+    if((v.payment||'')!==key)return false;
+    if(seen.has(v.id))return false;
+    if(!dateInFatura(v.date,closingDay,fatY,fatM))return false;
+    seen.add(v.id);return true;
+  });
+}
+
 function renderCards(){
   const cardOrder=['black','master','mercadopago','gabi'];
   const cardNames={black:'Black',master:'Master',mercadopago:'Mercado Pago',gabi:'Gabi'};
   const cardColors={black:'var(--blue)',master:'var(--amber)',mercadopago:'var(--green)',gabi:'var(--purple)'};
 
-  // Helper: pega variáveis de um dado mês (y,m) pagas com um cartão específico
-  // As variáveis já são gravadas no mês da fatura pelo billMonth(), então basta filtrar payment
-  function varItemsForCard(key, y, m){
-    const md=getMonth(y,m);
-    return (md.variable||[]).filter(v=>(v.payment||'')===key);
-  }
+  // Atualiza label de navegação
+  document.getElementById('cardFatLabel').textContent='Fatura '+MESES[cardFatM]+' '+cardFatY;
 
-  // Helper: monta todos os itens de uma fatura (parcelas ativas + variáveis)
-  function faturaItems(key, y, m){
-    const parcelas=activeCards(y,m).filter(c=>(c.payment||'black')===key);
-    const variaveis=varItemsForCard(key,y,m).map(v=>({...v,_isVar:true}));
-    return{parcelas, variaveis, total: parcelas.reduce((s,x)=>s+x.value,0)+variaveis.reduce((s,x)=>s+x.value,0)};
-  }
-
-  // Pre-calcula totais para overview
-  const cardTotals={};
+  // Monta dados por cartão
+  const today=new Date();
+  const cardData={};
   let totalAllCards=0;
   cardOrder.forEach(key=>{
-    const {total}=faturaItems(key,viewY,viewM);
-    cardTotals[key]=total;
+    const cfg=CARD_CONFIG[key];
+    const cd=cfg.closingDay;
+    const p=faturaPeriod(cd,cardFatY,cardFatM);
+    const periodLabel=`${String(p.startD).padStart(2,'0')}/${String(p.startM+1).padStart(2,'0')} → ${String(p.endD).padStart(2,'0')}/${String(p.endM+1).padStart(2,'0')}`;
+
+    const parcelas=activeCards(cardFatY,cardFatM).filter(c=>(c.payment||'black')===key);
+    const variaveis=varItemsInFatura(key,cd,cardFatY,cardFatM);
+    const totalParcelas=parcelas.reduce((s,x)=>s+x.value,0);
+    const totalVars=variaveis.reduce((s,x)=>s+x.value,0);
+    const total=totalParcelas+totalVars;
     totalAllCards+=total;
+
+    // Próxima fatura
+    let nfM=cardFatM+1,nfY=cardFatY;
+    if(nfM>11){nfM=0;nfY++;}
+    const nParcelas=activeCards(nfY,nfM).filter(c=>(c.payment||'black')===key);
+    const nVars=varItemsInFatura(key,cd,nfY,nfM);
+    const nextTotal=nParcelas.reduce((s,x)=>s+x.value,0)+nVars.reduce((s,x)=>s+x.value,0);
+
+    // Status
+    const todayDay=today.getDate();
+    const isFatAtual=cardFatY===today.getFullYear()&&cardFatM===today.getMonth();
+    const isFatPassada=cardFatY<today.getFullYear()||(cardFatY===today.getFullYear()&&cardFatM<today.getMonth());
+    const paid=getFaturaPaid(key,cardFatY,cardFatM);
+    let statusBadge,statusText;
+    if(paid){
+      statusBadge='badge-paid';statusText='✅ Fatura paga';
+    } else if(isFatAtual&&todayDay>=cd){
+      statusBadge='badge-closed';statusText='🔒 Fechada · pagar dia '+cd;
+    } else if(isFatPassada){
+      statusBadge='badge-closed';statusText='🔒 Fechada';
+    } else {
+      const daysLeft=isFatAtual?cd-todayDay:null;
+      statusBadge='badge-open';
+      statusText='🟡 Aberta'+(daysLeft!==null?' · fecha em '+daysLeft+(daysLeft===1?' dia':' dias'):'');
+    }
+
+    cardData[key]={parcelas,variaveis,total,totalParcelas,totalVars,periodLabel,paid,statusBadge,statusText,nextTotal,nParcelas,nVars,nfM,nfY,cfg,color:cardColors[key]};
   });
 
+  // Label de período no nav (referência Black)
+  const rp=faturaPeriod(10,cardFatY,cardFatM);
+  document.getElementById('cardFatPeriod').textContent=
+    `${String(rp.startD).padStart(2,'0')}/${String(rp.startM+1).padStart(2,'0')} → ${String(rp.endD).padStart(2,'0')}/${String(rp.endM+1).padStart(2,'0')}`;
+
   // Overview
-  const overviewEl=document.getElementById('cardsOverview');
-  overviewEl.innerHTML=`
+  document.getElementById('cardsOverview').innerHTML=`
     <div class="cov-card" style="border-color:var(--red);">
-      <div class="cov-lbl">Total cartões</div>
+      <div class="cov-lbl">Total fatura</div>
       <div class="cov-val">${fmt(totalAllCards)}</div>
-      <div class="cov-sub">${MESES[viewM]} ${viewY}</div>
+      <div class="cov-sub">${MESES[cardFatM]} ${cardFatY}</div>
     </div>
     ${cardOrder.map(key=>{
-      const cfg=CARD_CONFIG[key];
-      const paid=getFaturaPaid(key,viewY,viewM);
-      const tot=cardTotals[key];
-      return`<div class="cov-card" style="border-color:${cardColors[key]}20;cursor:pointer;" onclick="document.getElementById('cpanel-${key}').scrollIntoView({behavior:'smooth'})">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${cardColors[key]};border-radius:3px 3px 0 0;"></div>
+      const{total,paid,cfg,color}=cardData[key];
+      return`<div class="cov-card" style="cursor:pointer;" onclick="document.getElementById('cpanel-${key}').scrollIntoView({behavior:'smooth'})">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color};border-radius:3px 3px 0 0;"></div>
         <div class="cov-lbl">💳 ${cardNames[key]}</div>
-        <div class="cov-val" style="color:${cardColors[key]}">${fmt(tot)}</div>
-        <div class="cov-sub">${paid?'✅ paga':cfg&&cfg.closingDay?'fecha dia '+cfg.closingDay:'ativo'}</div>
+        <div class="cov-val" style="color:${color}">${fmt(total)}</div>
+        <div class="cov-sub">${paid?'✅ paga':'fecha dia '+cfg.closingDay}</div>
       </div>`;
     }).join('')}
   `;
 
-  // Panels
-  const panelsEl=document.getElementById('cardsPanels');
-  panelsEl.innerHTML=cardOrder.map(key=>{
-    const cfg=CARD_CONFIG[key];
-    const color=cardColors[key];
-    const {parcelas: currentParcelas, variaveis: currentVars, total}=faturaItems(key,viewY,viewM);
-    const paid=getFaturaPaid(key,viewY,viewM);
+  // Painéis por cartão
+  document.getElementById('cardsPanels').innerHTML=cardOrder.map(key=>{
+    const{parcelas,variaveis,total,totalParcelas,totalVars,periodLabel,paid,statusBadge,statusText,nextTotal,nParcelas,nVars,nfM,nfY,cfg,color}=cardData[key];
 
-    // Próxima fatura
-    const nextY=viewM===11?viewY+1:viewY, nextM=viewM===11?0:viewM+1;
-    const {parcelas: nextParcelas, variaveis: nextVars, total: nextTotal}=faturaItems(key,nextY,nextM);
+    const parcelasHtml=parcelas.map(item=>{
+      const c=catMap[item.cat]||{c:'#888',l:'?'};
+      const info=cardInfo(item,cardFatY,cardFatM);
+      const isFix=item.tipo==='fixa';
+      const end=!isFix?addMonths(item.startMonth,item.pa,item.pt):null;
+      let dotsHtml='';
+      if(!isFix&&item.pt&&item.pt<=24){
+        const[sy,sm]=item.startMonth.split('-').map(Number);
+        const elapsed=cardFatY*12+cardFatM-(sy*12+(sm-1));
+        const cur=(item.pa||1)+elapsed;
+        const dots=Array.from({length:item.pt},(_,i)=>{
+          if(i<cur-1)return'<div class="par-dot done"></div>';
+          if(i===cur-1)return'<div class="par-dot current"></div>';
+          return'<div class="par-dot future"></div>';
+        }).join('');
+        dotsHtml=`<div class="par-progress"><div class="par-dots">${dots}</div><span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--text3);">${cur}/${item.pt}</span></div>`;
+      }
+      const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+      return`<div class="iitem">
+        <div class="cdot" style="background:${c.c}"></div>
+        <div class="iitem-main">
+          <div class="iitem-name">${item.name}${debtorTag}</div>
+          <div class="iitem-sub">${c.l} · ${isFix?'fixa mensal':info+(end?' · até '+end:'')}</div>
+          ${dotsHtml}
+        </div>
+        <div class="iitem-val r">- ${fmt(item.value)}</div>
+        <div class="iitem-acts">
+          <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
+          <button class="bi" onclick="delCard('${item.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
 
-    // Status
-    const today=new Date();
-    const todayDay=today.getDate();
-    const isCurrentViewMonth=viewY===today.getFullYear()&&viewM===today.getMonth();
-    let statusBadge, statusText;
-    if(paid){
-      statusBadge='badge-paid'; statusText='✅ Fatura paga';
-    } else if(cfg&&cfg.closingDay&&isCurrentViewMonth&&todayDay>cfg.closingDay){
-      statusBadge='badge-closed'; statusText='🔒 Fechada · aguardando pagamento dia '+cfg.payDay;
-    } else {
-      statusBadge='badge-open';
-      statusText=cfg&&cfg.closingDay
-        ?'🟡 Aberta · fecha dia '+cfg.closingDay+(cfg.payDay?' · paga dia '+cfg.payDay:'')
-        :'🟡 Aberta';
-    }
+    const varsHtml=variaveis.map(item=>{
+      const c=catMap[item.cat]||{c:'#888',l:'?'};
+      const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+      return`<div class="iitem">
+        <div class="cdot" style="background:${c.c}"></div>
+        <div class="iitem-main">
+          <div class="iitem-name">${item.name}${debtorTag}</div>
+          <div class="iitem-sub">${c.l}${item.date?' · '+fmtDate(item.date):''}</div>
+        </div>
+        <div class="iitem-val r">- ${fmt(item.value)}</div>
+        <div class="iitem-acts">
+          <button class="bi ed" onclick="openEdit('${item.id}','variable')">✎</button>
+          <button class="bi" onclick="delQuick('${item.id}','variable')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
 
-    // Subtotais para exibição no cabeçalho info
-    const totalParcelas=currentParcelas.reduce((s,x)=>s+x.value,0);
-    const totalVars=currentVars.reduce((s,x)=>s+x.value,0);
+    const nenhum=!parcelas.length&&!variaveis.length?'<div class="card-empty">nenhum lançamento nesta fatura</div>':'';
 
-    // HTML de parcelas
-    const parcelasHtml=currentParcelas.length?`
-      <div class="card-section-label" style="border-top:none;">📌 Parcelas e fixos — ${fmt(totalParcelas)}</div>
-      <div class="ilist" style="border-radius:0;border:none;">
-        ${currentParcelas.map(item=>{
-          const c=catMap[item.cat]||{c:'#888',l:'?'};
-          const info=cardInfo(item,viewY,viewM);
-          const isFix=item.tipo==='fixa';
-          const end=!isFix?addMonths(item.startMonth,item.pa,item.pt):null;
-          let dotsHtml='';
-          if(!isFix&&item.pt&&item.pt<=24){
-            const [sy,sm]=item.startMonth.split('-').map(Number);
-            const elapsed=viewY*12+viewM-(sy*12+(sm-1));
-            const cur=(item.pa||1)+elapsed;
-            const dots=Array.from({length:item.pt},(_,i)=>{
-              if(i<cur-1)return'<div class="par-dot done"></div>';
-              if(i===cur-1)return'<div class="par-dot current"></div>';
-              return'<div class="par-dot future"></div>';
-            }).join('');
-            dotsHtml=`<div class="par-progress"><div class="par-dots">${dots}</div><span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--text3);">${cur}/${item.pt}</span></div>`;
-          }
-          const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-          return`<div class="iitem">
-            <div class="cdot" style="background:${c.c}"></div>
-            <div class="iitem-main">
-              <div class="iitem-name">${item.name}${debtorTag}</div>
-              <div class="iitem-sub">${c.l} · ${isFix?'fixa mensal':info+(end?' · até '+end:'')}</div>
-              ${dotsHtml}
-            </div>
-            <div class="iitem-val r">- ${fmt(item.value)}</div>
-            <div class="iitem-acts">
-              <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
-              <button class="bi" onclick="delCard('${item.id}')">✕</button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`:'';
-
-    // HTML de variáveis
-    const varsHtml=currentVars.length?`
-      <div class="card-section-label">🛒 Gastos variáveis — ${fmt(totalVars)}</div>
-      <div class="ilist" style="border-radius:0;border:none;">
-        ${currentVars.map(item=>{
-          const c=catMap[item.cat]||{c:'#888',l:'?'};
-          const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-          return`<div class="iitem">
-            <div class="cdot" style="background:${c.c}"></div>
-            <div class="iitem-main">
-              <div class="iitem-name">${item.name}${debtorTag}</div>
-              <div class="iitem-sub">${c.l}${item.date?' · '+fmtDate(item.date):''}</div>
-            </div>
-            <div class="iitem-val r">- ${fmt(item.value)}</div>
-            <div class="iitem-acts">
-              <button class="bi ed" onclick="openEdit('${item.id}','variable')">✎</button>
-              <button class="bi" onclick="delQuick('${item.id}','variable')">✕</button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`:'';
-
-    const nenhum=!currentParcelas.length&&!currentVars.length?'<div class="card-empty">nenhum lançamento nesta fatura</div>':'';
-
-    // Próxima fatura preview
-    const nextAllItems=[
-      ...nextParcelas.map(item=>({nome:item.name,val:item.value,sub:cardInfo(item,nextY,nextM),tipo:'parcela'})),
-      ...nextVars.map(item=>({nome:item.name,val:item.value,sub:catMap[item.cat]?.l||'?',tipo:'var'}))
+    // Preview próxima fatura
+    const nextAll=[
+      ...nParcelas.map(i=>({nome:i.name,val:i.value,sub:cardInfo(i,nfY,nfM)})),
+      ...nVars.map(i=>({nome:i.name,val:i.value,sub:catMap[i.cat]?.l||'?'}))
     ];
-    const nextHtml=nextAllItems.length?
-      nextAllItems.map(item=>`<div class="nfs-row">
-        <span style="color:var(--text2)">${item.nome}</span>
-        <span style="color:var(--text3);font-size:.6rem;">${item.sub}</span>
-        <span class="nfs-total">- ${fmt(item.val)}</span>
+    const nextHtml=nextAll.length?nextAll.map(i=>`<div class="nfs-row">
+        <span style="color:var(--text2)">${i.nome}</span>
+        <span style="color:var(--text3);font-size:.6rem;">${i.sub}</span>
+        <span class="nfs-total">- ${fmt(i.val)}</span>
       </div>`).join('')+`<div class="nfs-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(96,165,250,.15);">
         <span style="color:var(--blue-text);font-weight:600;">Total próxima fatura</span><span></span>
         <span class="nfs-total">- ${fmt(nextTotal)}</span>
       </div>`:null;
-
-    const nItens=currentParcelas.length+currentVars.length;
 
     return`<div class="card-panel" id="cpanel-${key}">
       <div class="card-panel-header">
         <div class="card-panel-accent" style="background:${color}"></div>
         <div>
           <div class="card-panel-name" style="color:${color}">💳 ${cardNames[key]}</div>
-          <div class="card-panel-meta">${cfg&&cfg.closingDay?'Fecha dia '+cfg.closingDay+' · Paga dia '+cfg.payDay:''}</div>
+          <div class="card-panel-meta">Período: ${periodLabel} · paga dia ${cfg.payDay}</div>
         </div>
         <div style="text-align:right;">
           <div class="card-panel-total">- ${fmt(total)}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--text3);">fatura ${MESES[viewM]}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--text3);">fatura ${MESES[cardFatM]}</div>
         </div>
       </div>
       <div class="card-status-row">
         <span class="card-status-badge ${statusBadge}">${statusText}</span>
-        <button class="card-pay-btn${paid?' unpay':''}" onclick="toggleFaturaPaid('${key}',${viewY},${viewM})">
+        <button class="card-pay-btn${paid?' unpay':''}" onclick="toggleFaturaPaid('${key}',${cardFatY},${cardFatM})">
           ${paid?'↩ desfazer':'✓ Marcar como paga'}
         </button>
       </div>
       <div class="card-fatura-info">
         <div class="cfi">
-          <div class="cfi-lbl">Fatura ${MESES[viewM]}</div>
+          <div class="cfi-lbl">Total fatura</div>
           <div class="cfi-val" style="color:${color}">- ${fmt(total)}</div>
         </div>
         <div class="cfi">
-          <div class="cfi-lbl">Parcelas/fixos</div>
+          <div class="cfi-lbl">Parcelas / fixos</div>
           <div class="cfi-val">- ${fmt(totalParcelas)}</div>
         </div>
         <div class="cfi">
@@ -2504,10 +2553,12 @@ function renderCards(){
         </div>
       </div>
       ${nenhum}
-      ${parcelasHtml}
-      ${varsHtml}
+      ${parcelas.length?`<div class="card-section-label" style="border-top:none;">📌 Parcelas e fixos — ${fmt(totalParcelas)}</div>
+      <div class="ilist" style="border-radius:0;border:none;">${parcelasHtml}</div>`:''}
+      ${variaveis.length?`<div class="card-section-label">🛒 Gastos variáveis — ${fmt(totalVars)}</div>
+      <div class="ilist" style="border-radius:0;border:none;">${varsHtml}</div>`:''}
       ${nextHtml?`<div class="next-fatura-strip">
-        <div class="nfs-lbl">📅 Próxima fatura — ${MESES[nextM]} ${nextY}</div>
+        <div class="nfs-lbl">📅 Próxima fatura — ${MESES[nfM]} ${nfY}</div>
         ${nextHtml}
       </div>`:''}
     </div>`;
