@@ -2315,22 +2315,34 @@ function renderCards(){
   const cardOrder=['black','master','mercadopago','gabi'];
   const cardNames={black:'Black',master:'Master',mercadopago:'Mercado Pago',gabi:'Gabi'};
   const cardColors={black:'var(--blue)',master:'var(--amber)',mercadopago:'var(--green)',gabi:'var(--purple)'};
-  const cardEmoji={black:'💳',master:'💳',mercadopago:'💳',gabi:'💳'};
 
-  // Overview bar
-  const overviewEl=document.getElementById('cardsOverview');
-  let totalAllCards=0;
+  // Helper: pega variáveis de um dado mês (y,m) pagas com um cartão específico
+  // As variáveis já são gravadas no mês da fatura pelo billMonth(), então basta filtrar payment
+  function varItemsForCard(key, y, m){
+    const md=getMonth(y,m);
+    return (md.variable||[]).filter(v=>(v.payment||'')===key);
+  }
+
+  // Helper: monta todos os itens de uma fatura (parcelas ativas + variáveis)
+  function faturaItems(key, y, m){
+    const parcelas=activeCards(y,m).filter(c=>(c.payment||'black')===key);
+    const variaveis=varItemsForCard(key,y,m).map(v=>({...v,_isVar:true}));
+    return{parcelas, variaveis, total: parcelas.reduce((s,x)=>s+x.value,0)+variaveis.reduce((s,x)=>s+x.value,0)};
+  }
+
+  // Pre-calcula totais para overview
   const cardTotals={};
+  let totalAllCards=0;
   cardOrder.forEach(key=>{
-    const items=D.card.filter(c=>(c.payment||'black')===key&&(c.tipo==='fixa'||activeCards(viewY,viewM).some(ac=>ac.id===c.id)));
-    const active=activeCards(viewY,viewM).filter(c=>(c.payment||'black')===key);
-    const tot=active.reduce((s,x)=>s+x.value,0);
-    cardTotals[key]=tot;
-    totalAllCards+=tot;
+    const {total}=faturaItems(key,viewY,viewM);
+    cardTotals[key]=total;
+    totalAllCards+=total;
   });
 
+  // Overview
+  const overviewEl=document.getElementById('cardsOverview');
   overviewEl.innerHTML=`
-    <div class="cov-card" style="border-color:var(--red);" onclick="">
+    <div class="cov-card" style="border-color:var(--red);">
       <div class="cov-lbl">Total cartões</div>
       <div class="cov-val">${fmt(totalAllCards)}</div>
       <div class="cov-sub">${MESES[viewM]} ${viewY}</div>
@@ -2339,11 +2351,11 @@ function renderCards(){
       const cfg=CARD_CONFIG[key];
       const paid=getFaturaPaid(key,viewY,viewM);
       const tot=cardTotals[key];
-      return`<div class="cov-card" style="border-color:${cardColors[key]}20;" onclick="document.getElementById('cpanel-${key}').scrollIntoView({behavior:'smooth'})">
+      return`<div class="cov-card" style="border-color:${cardColors[key]}20;cursor:pointer;" onclick="document.getElementById('cpanel-${key}').scrollIntoView({behavior:'smooth'})">
         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${cardColors[key]};border-radius:3px 3px 0 0;"></div>
-        <div class="cov-lbl">${cardEmoji[key]} ${cardNames[key]}</div>
+        <div class="cov-lbl">💳 ${cardNames[key]}</div>
         <div class="cov-val" style="color:${cardColors[key]}">${fmt(tot)}</div>
-        <div class="cov-sub">${paid?'✅ fatura paga':cfg&&cfg.closingDay?'fecha dia '+cfg.closingDay:'ativo'}</div>
+        <div class="cov-sub">${paid?'✅ paga':cfg&&cfg.closingDay?'fecha dia '+cfg.closingDay:'ativo'}</div>
       </div>`;
     }).join('')}
   `;
@@ -2353,14 +2365,12 @@ function renderCards(){
   panelsEl.innerHTML=cardOrder.map(key=>{
     const cfg=CARD_CONFIG[key];
     const color=cardColors[key];
-    const currentItems=activeCards(viewY,viewM).filter(c=>(c.payment||'black')===key);
-    const total=currentItems.reduce((s,x)=>s+x.value,0);
+    const {parcelas: currentParcelas, variaveis: currentVars, total}=faturaItems(key,viewY,viewM);
     const paid=getFaturaPaid(key,viewY,viewM);
 
-    // Next month items
+    // Próxima fatura
     const nextY=viewM===11?viewY+1:viewY, nextM=viewM===11?0:viewM+1;
-    const nextItems=activeCards(nextY,nextM).filter(c=>(c.payment||'black')===key);
-    const nextTotal=nextItems.reduce((s,x)=>s+x.value,0);
+    const {parcelas: nextParcelas, variaveis: nextVars, total: nextTotal}=faturaItems(key,nextY,nextM);
 
     // Status
     const today=new Date();
@@ -2378,55 +2388,88 @@ function renderCards(){
         :'🟡 Aberta';
     }
 
-    const itemsHtml=currentItems.length?currentItems.map(item=>{
-      const c=catMap[item.cat]||{c:'#888',l:'?'};
-      const info=cardInfo(item,viewY,viewM);
-      const isFix=item.tipo==='fixa';
-      const end=!isFix?addMonths(item.startMonth,item.pa,item.pt):null;
+    // Subtotais para exibição no cabeçalho info
+    const totalParcelas=currentParcelas.reduce((s,x)=>s+x.value,0);
+    const totalVars=currentVars.reduce((s,x)=>s+x.value,0);
 
-      // Parcela progress dots
-      let dotsHtml='';
-      if(!isFix&&item.pt&&item.pt<=24){
-        const [sy,sm]=item.startMonth.split('-').map(Number);
-        const elapsed=viewY*12+viewM-(sy*12+(sm-1));
-        const cur=(item.pa||1)+elapsed;
-        const dots=Array.from({length:item.pt},(_,i)=>{
-          if(i<cur-1)return'<div class="par-dot done"></div>';
-          if(i===cur-1)return'<div class="par-dot current"></div>';
-          return'<div class="par-dot future"></div>';
-        }).join('');
-        dotsHtml=`<div class="par-progress"><div class="par-dots">${dots}</div><span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--text3);">${cur}/${item.pt}</span></div>`;
-      }
+    // HTML de parcelas
+    const parcelasHtml=currentParcelas.length?`
+      <div class="card-section-label" style="border-top:none;">📌 Parcelas e fixos — ${fmt(totalParcelas)}</div>
+      <div class="ilist" style="border-radius:0;border:none;">
+        ${currentParcelas.map(item=>{
+          const c=catMap[item.cat]||{c:'#888',l:'?'};
+          const info=cardInfo(item,viewY,viewM);
+          const isFix=item.tipo==='fixa';
+          const end=!isFix?addMonths(item.startMonth,item.pa,item.pt):null;
+          let dotsHtml='';
+          if(!isFix&&item.pt&&item.pt<=24){
+            const [sy,sm]=item.startMonth.split('-').map(Number);
+            const elapsed=viewY*12+viewM-(sy*12+(sm-1));
+            const cur=(item.pa||1)+elapsed;
+            const dots=Array.from({length:item.pt},(_,i)=>{
+              if(i<cur-1)return'<div class="par-dot done"></div>';
+              if(i===cur-1)return'<div class="par-dot current"></div>';
+              return'<div class="par-dot future"></div>';
+            }).join('');
+            dotsHtml=`<div class="par-progress"><div class="par-dots">${dots}</div><span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--text3);">${cur}/${item.pt}</span></div>`;
+          }
+          const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+          return`<div class="iitem">
+            <div class="cdot" style="background:${c.c}"></div>
+            <div class="iitem-main">
+              <div class="iitem-name">${item.name}${debtorTag}</div>
+              <div class="iitem-sub">${c.l} · ${isFix?'fixa mensal':info+(end?' · até '+end:'')}</div>
+              ${dotsHtml}
+            </div>
+            <div class="iitem-val r">- ${fmt(item.value)}</div>
+            <div class="iitem-acts">
+              <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
+              <button class="bi" onclick="delCard('${item.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:'';
 
-      const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
-      return`<div class="iitem">
-        <div class="cdot" style="background:${c.c}"></div>
-        <div class="iitem-main">
-          <div class="iitem-name">${item.name}${debtorTag}</div>
-          <div class="iitem-sub">${c.l} · ${isFix?'fixa mensal':info+(end?' · até '+end:'')} </div>
-          ${dotsHtml}
-        </div>
-        <div class="iitem-val r">- ${fmt(item.value)}</div>
-        <div class="iitem-acts">
-          <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
-          <button class="bi" onclick="delCard('${item.id}')">✕</button>
-        </div>
-      </div>`;
-    }).join(''):`<div class="card-empty">nenhuma compra nesta fatura</div>`;
+    // HTML de variáveis
+    const varsHtml=currentVars.length?`
+      <div class="card-section-label">🛒 Gastos variáveis — ${fmt(totalVars)}</div>
+      <div class="ilist" style="border-radius:0;border:none;">
+        ${currentVars.map(item=>{
+          const c=catMap[item.cat]||{c:'#888',l:'?'};
+          const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+          return`<div class="iitem">
+            <div class="cdot" style="background:${c.c}"></div>
+            <div class="iitem-main">
+              <div class="iitem-name">${item.name}${debtorTag}</div>
+              <div class="iitem-sub">${c.l}${item.date?' · '+fmtDate(item.date):''}</div>
+            </div>
+            <div class="iitem-val r">- ${fmt(item.value)}</div>
+            <div class="iitem-acts">
+              <button class="bi ed" onclick="openEdit('${item.id}','variable')">✎</button>
+              <button class="bi" onclick="delQuick('${item.id}','variable')">✕</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:'';
 
-    const nextHtml=nextItems.length?nextItems.map(item=>{
-      const c=catMap[item.cat]||{c:'#888',l:'?'};
-      const infoN=cardInfo(item,nextY,nextM);
-      const isFix=item.tipo==='fixa';
-      return`<div class="nfs-row">
-        <span style="color:var(--text2)">${item.name}</span>
-        <span style="color:var(--text3);font-size:.6rem;">${isFix?'fixa':infoN}</span>
-        <span class="nfs-total">- ${fmt(item.value)}</span>
-      </div>`;
-    }).join('')+`<div class="nfs-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(96,165,250,.15);">
-      <span style="color:var(--blue-text);font-weight:600;">Total próxima fatura</span><span></span>
-      <span class="nfs-total">- ${fmt(nextTotal)}</span>
-    </div>`:null;
+    const nenhum=!currentParcelas.length&&!currentVars.length?'<div class="card-empty">nenhum lançamento nesta fatura</div>':'';
+
+    // Próxima fatura preview
+    const nextAllItems=[
+      ...nextParcelas.map(item=>({nome:item.name,val:item.value,sub:cardInfo(item,nextY,nextM),tipo:'parcela'})),
+      ...nextVars.map(item=>({nome:item.name,val:item.value,sub:catMap[item.cat]?.l||'?',tipo:'var'}))
+    ];
+    const nextHtml=nextAllItems.length?
+      nextAllItems.map(item=>`<div class="nfs-row">
+        <span style="color:var(--text2)">${item.nome}</span>
+        <span style="color:var(--text3);font-size:.6rem;">${item.sub}</span>
+        <span class="nfs-total">- ${fmt(item.val)}</span>
+      </div>`).join('')+`<div class="nfs-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(96,165,250,.15);">
+        <span style="color:var(--blue-text);font-weight:600;">Total próxima fatura</span><span></span>
+        <span class="nfs-total">- ${fmt(nextTotal)}</span>
+      </div>`:null;
+
+    const nItens=currentParcelas.length+currentVars.length;
 
     return`<div class="card-panel" id="cpanel-${key}">
       <div class="card-panel-header">
@@ -2443,7 +2486,7 @@ function renderCards(){
       <div class="card-status-row">
         <span class="card-status-badge ${statusBadge}">${statusText}</span>
         <button class="card-pay-btn${paid?' unpay':''}" onclick="toggleFaturaPaid('${key}',${viewY},${viewM})">
-          ${paid?'↩ desfazer pagamento':'✓ Marcar como paga'}
+          ${paid?'↩ desfazer':'✓ Marcar como paga'}
         </button>
       </div>
       <div class="card-fatura-info">
@@ -2452,16 +2495,17 @@ function renderCards(){
           <div class="cfi-val" style="color:${color}">- ${fmt(total)}</div>
         </div>
         <div class="cfi">
-          <div class="cfi-lbl">Próxima fatura</div>
-          <div class="cfi-val" style="color:var(--blue-text)">- ${fmt(nextTotal)}</div>
+          <div class="cfi-lbl">Parcelas/fixos</div>
+          <div class="cfi-val">- ${fmt(totalParcelas)}</div>
         </div>
         <div class="cfi">
-          <div class="cfi-lbl">Nº de compras</div>
-          <div class="cfi-val">${currentItems.length} ${currentItems.length===1?'compra':'compras'}</div>
+          <div class="cfi-lbl">Gastos variáveis</div>
+          <div class="cfi-val" style="color:var(--amber-text)">- ${fmt(totalVars)}</div>
         </div>
       </div>
-      <div class="card-section-label">Compras nesta fatura</div>
-      <div class="ilist" style="border-radius:0;border:none;border-top:none;">${itemsHtml}</div>
+      ${nenhum}
+      ${parcelasHtml}
+      ${varsHtml}
       ${nextHtml?`<div class="next-fatura-strip">
         <div class="nfs-lbl">📅 Próxima fatura — ${MESES[nextM]} ${nextY}</div>
         ${nextHtml}
