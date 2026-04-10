@@ -298,6 +298,53 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 
 .qtag{font-family:'DM Mono',monospace;font-size:.52rem;padding:2px 5px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
 
+/* ── CARDS TAB ── */
+.card-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:1.2rem;overflow:hidden;}
+.card-panel-header{display:flex;align-items:center;gap:12px;padding:1rem 1.2rem;border-bottom:1px solid var(--border);position:relative;}
+.card-panel-accent{position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.card-panel-name{font-size:1rem;font-weight:700;letter-spacing:-.02em;flex:1;}
+.card-panel-total{font-family:'DM Mono',monospace;font-size:1rem;font-weight:700;color:var(--red-text);}
+.card-panel-meta{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-top:2px;}
+.card-status-row{display:flex;align-items:center;gap:8px;padding:.65rem 1.2rem;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.card-status-badge{font-family:'DM Mono',monospace;font-size:.62rem;padding:4px 10px;border-radius:6px;font-weight:600;}
+.badge-open{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--amber-text);}
+.badge-closed{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--red-text);}
+.badge-paid{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:var(--green-text);}
+.card-pay-btn{font-family:'DM Mono',monospace;font-size:.6rem;padding:4px 12px;border-radius:6px;background:rgba(74,222,128,.1);border:1px solid var(--green);color:var(--green);cursor:pointer;transition:all .15s;margin-left:auto;}
+.card-pay-btn:hover{background:rgba(74,222,128,.2);}
+.card-pay-btn.unpay{background:rgba(248,113,113,.08);border-color:var(--red);color:var(--red-text);}
+.card-section-label{font-family:'DM Mono',monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);padding:.7rem 1.2rem .3rem;border-top:1px solid var(--border);}
+.card-section-label:first-of-type{border-top:none;}
+.card-fatura-info{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border);}
+.cfi{padding:.75rem 1.2rem;border-right:1px solid var(--border);}
+.cfi:last-child{border-right:none;}
+.cfi-lbl{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:3px;}
+.cfi-val{font-family:'DM Mono',monospace;font-size:.82rem;font-weight:600;}
+.card-empty{padding:1.5rem;text-align:center;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--text3);}
+.par-progress{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.par-dots{display:flex;gap:2px;}
+.par-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);}
+.par-dot.done{background:var(--green);}
+.par-dot.current{background:var(--amber);}
+.par-dot.future{background:var(--border2);}
+.next-fatura-strip{background:rgba(96,165,250,.05);border:1px dashed rgba(96,165,250,.2);border-radius:10px;margin:.6rem 1.2rem 1rem;padding:.7rem 1rem;}
+.nfs-lbl{font-family:'DM Mono',monospace;font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--blue-text);margin-bottom:.5rem;}
+.nfs-row{display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text2);margin-bottom:3px;}
+.nfs-row:last-child{margin-bottom:0;}
+.nfs-total{color:var(--blue-text);font-weight:600;}
+.cards-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.2rem;}
+.cov-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;position:relative;overflow:hidden;cursor:pointer;transition:all .18s;}
+.cov-card:hover{background:var(--surface2);border-color:var(--border2);}
+.cov-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.cov-lbl{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.cov-val{font-family:'DM Mono',monospace;font-size:.9rem;font-weight:700;color:var(--red-text);}
+.cov-sub{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--text3);margin-top:2px;}
+@media(max-width:680px){
+  .card-fatura-info{grid-template-columns:1fr 1fr;}
+  .cfi:nth-child(3){border-top:1px solid var(--border);grid-column:1/-1;}
+  .cards-overview{grid-template-columns:1fr 1fr;}
+}
+
 @media(max-width:680px){
   /* App padding */
   .app{padding:0 .9rem 6rem;}
@@ -457,6 +504,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 <div class="tabs">
   <div class="tab active" onclick="goTab('quick')">Lançamento rápido</div>
   <div class="tab"        onclick="goTab('detail')">Despesas detalhadas</div>
+  <div class="tab"        onclick="goTab('cards')">💳 Cartões</div>
   <div class="tab"        onclick="goTab('charts')">Gráficos</div>
   <div class="tab"        onclick="goTab('annual')">Visão anual</div>
   <div class="tab"        onclick="goTab('invest')">Investimentos</div>
@@ -706,6 +754,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
       <div id="flowWrap" style="position:relative;width:100%;height:230px;"><canvas id="cFlow"></canvas></div>
     </div>
   </div>
+</div>
+
+<!-- TAB CARDS -->
+<div id="tab-cards" class="tab-content">
+  <div id="cardsOverview" class="cards-overview"></div>
+  <div id="cardsPanels"></div>
 </div>
 
 <!-- TAB ANNUAL -->
@@ -1077,7 +1131,8 @@ function seedData(){
       ]
     }},
     investments:[],
-    goals:JSON.parse(JSON.stringify(DEFAULT_GOALS))
+    goals:JSON.parse(JSON.stringify(DEFAULT_GOALS)),
+    paidFaturas:{}
   };
 }
 
@@ -1219,13 +1274,14 @@ function updateNav(){
 // ── TABS ───────────────────────────────────────────────────────────────
 let curTab='quick';
 function goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['quick','detail','charts','annual','invest'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['quick','detail','cards','charts','annual','invest'][i]===t));
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   curTab=t;
   if(t==='charts')setTimeout(renderCharts,60);
   if(t==='annual'){annualYear=viewY;setTimeout(renderAnnual,60);}
   if(t==='invest'){renderInvStats();renderGoals();setTimeout(renderInvChart,60);}
+  if(t==='cards')renderCards();
 }
 
 // ── SUMMARY ────────────────────────────────────────────────────────────
@@ -2239,11 +2295,187 @@ function getLast12(){
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 
+// ── CARDS TAB ──────────────────────────────────────────────────────────
+function getFaturaKey(cardKey, y, m){
+  // fatura key format: "black-2025-04"
+  return cardKey+'-'+y+'-'+String(m+1).padStart(2,'0');
+}
+function getFaturaPaid(cardKey, y, m){
+  if(!D.paidFaturas)D.paidFaturas={};
+  return !!D.paidFaturas[getFaturaKey(cardKey,y,m)];
+}
+function toggleFaturaPaid(cardKey, y, m){
+  if(!D.paidFaturas)D.paidFaturas={};
+  const k=getFaturaKey(cardKey,y,m);
+  D.paidFaturas[k]=!D.paidFaturas[k];
+  persist();renderCards();
+}
+
+function renderCards(){
+  const cardOrder=['black','master','mercadopago','gabi'];
+  const cardNames={black:'Black',master:'Master',mercadopago:'Mercado Pago',gabi:'Gabi'};
+  const cardColors={black:'var(--blue)',master:'var(--amber)',mercadopago:'var(--green)',gabi:'var(--purple)'};
+  const cardEmoji={black:'💳',master:'💳',mercadopago:'💳',gabi:'💳'};
+
+  // Overview bar
+  const overviewEl=document.getElementById('cardsOverview');
+  let totalAllCards=0;
+  const cardTotals={};
+  cardOrder.forEach(key=>{
+    const items=D.card.filter(c=>(c.payment||'black')===key&&(c.tipo==='fixa'||activeCards(viewY,viewM).some(ac=>ac.id===c.id)));
+    const active=activeCards(viewY,viewM).filter(c=>(c.payment||'black')===key);
+    const tot=active.reduce((s,x)=>s+x.value,0);
+    cardTotals[key]=tot;
+    totalAllCards+=tot;
+  });
+
+  overviewEl.innerHTML=`
+    <div class="cov-card" style="border-color:var(--red);" onclick="">
+      <div class="cov-lbl">Total cartões</div>
+      <div class="cov-val">${fmt(totalAllCards)}</div>
+      <div class="cov-sub">${MESES[viewM]} ${viewY}</div>
+    </div>
+    ${cardOrder.map(key=>{
+      const cfg=CARD_CONFIG[key];
+      const paid=getFaturaPaid(key,viewY,viewM);
+      const tot=cardTotals[key];
+      return`<div class="cov-card" style="border-color:${cardColors[key]}20;" onclick="document.getElementById('cpanel-${key}').scrollIntoView({behavior:'smooth'})">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${cardColors[key]};border-radius:3px 3px 0 0;"></div>
+        <div class="cov-lbl">${cardEmoji[key]} ${cardNames[key]}</div>
+        <div class="cov-val" style="color:${cardColors[key]}">${fmt(tot)}</div>
+        <div class="cov-sub">${paid?'✅ fatura paga':cfg&&cfg.closingDay?'fecha dia '+cfg.closingDay:'ativo'}</div>
+      </div>`;
+    }).join('')}
+  `;
+
+  // Panels
+  const panelsEl=document.getElementById('cardsPanels');
+  panelsEl.innerHTML=cardOrder.map(key=>{
+    const cfg=CARD_CONFIG[key];
+    const color=cardColors[key];
+    const currentItems=activeCards(viewY,viewM).filter(c=>(c.payment||'black')===key);
+    const total=currentItems.reduce((s,x)=>s+x.value,0);
+    const paid=getFaturaPaid(key,viewY,viewM);
+
+    // Next month items
+    const nextY=viewM===11?viewY+1:viewY, nextM=viewM===11?0:viewM+1;
+    const nextItems=activeCards(nextY,nextM).filter(c=>(c.payment||'black')===key);
+    const nextTotal=nextItems.reduce((s,x)=>s+x.value,0);
+
+    // Status
+    const today=new Date();
+    const todayDay=today.getDate();
+    const isCurrentViewMonth=viewY===today.getFullYear()&&viewM===today.getMonth();
+    let statusBadge, statusText;
+    if(paid){
+      statusBadge='badge-paid'; statusText='✅ Fatura paga';
+    } else if(cfg&&cfg.closingDay&&isCurrentViewMonth&&todayDay>cfg.closingDay){
+      statusBadge='badge-closed'; statusText='🔒 Fechada · aguardando pagamento dia '+cfg.payDay;
+    } else {
+      statusBadge='badge-open';
+      statusText=cfg&&cfg.closingDay
+        ?'🟡 Aberta · fecha dia '+cfg.closingDay+(cfg.payDay?' · paga dia '+cfg.payDay:'')
+        :'🟡 Aberta';
+    }
+
+    const itemsHtml=currentItems.length?currentItems.map(item=>{
+      const c=catMap[item.cat]||{c:'#888',l:'?'};
+      const info=cardInfo(item,viewY,viewM);
+      const isFix=item.tipo==='fixa';
+      const end=!isFix?addMonths(item.startMonth,item.pa,item.pt):null;
+
+      // Parcela progress dots
+      let dotsHtml='';
+      if(!isFix&&item.pt&&item.pt<=24){
+        const [sy,sm]=item.startMonth.split('-').map(Number);
+        const elapsed=viewY*12+viewM-(sy*12+(sm-1));
+        const cur=(item.pa||1)+elapsed;
+        const dots=Array.from({length:item.pt},(_,i)=>{
+          if(i<cur-1)return'<div class="par-dot done"></div>';
+          if(i===cur-1)return'<div class="par-dot current"></div>';
+          return'<div class="par-dot future"></div>';
+        }).join('');
+        dotsHtml=`<div class="par-progress"><div class="par-dots">${dots}</div><span style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--text3);">${cur}/${item.pt}</span></div>`;
+      }
+
+      const debtorTag=item.debtor&&item.debtor!=='otavio'?`<span class="qtag" style="background:rgba(192,132,252,.12);color:var(--purple);margin-left:4px;">${DEBTOR_LABELS[item.debtor]||item.debtor}</span>`:'';
+      return`<div class="iitem">
+        <div class="cdot" style="background:${c.c}"></div>
+        <div class="iitem-main">
+          <div class="iitem-name">${item.name}${debtorTag}</div>
+          <div class="iitem-sub">${c.l} · ${isFix?'fixa mensal':info+(end?' · até '+end:'')} </div>
+          ${dotsHtml}
+        </div>
+        <div class="iitem-val r">- ${fmt(item.value)}</div>
+        <div class="iitem-acts">
+          <button class="bi ed" onclick="openEditCard('${item.id}')">✎</button>
+          <button class="bi" onclick="delCard('${item.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join(''):`<div class="card-empty">nenhuma compra nesta fatura</div>`;
+
+    const nextHtml=nextItems.length?nextItems.map(item=>{
+      const c=catMap[item.cat]||{c:'#888',l:'?'};
+      const infoN=cardInfo(item,nextY,nextM);
+      const isFix=item.tipo==='fixa';
+      return`<div class="nfs-row">
+        <span style="color:var(--text2)">${item.name}</span>
+        <span style="color:var(--text3);font-size:.6rem;">${isFix?'fixa':infoN}</span>
+        <span class="nfs-total">- ${fmt(item.value)}</span>
+      </div>`;
+    }).join('')+`<div class="nfs-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(96,165,250,.15);">
+      <span style="color:var(--blue-text);font-weight:600;">Total próxima fatura</span><span></span>
+      <span class="nfs-total">- ${fmt(nextTotal)}</span>
+    </div>`:null;
+
+    return`<div class="card-panel" id="cpanel-${key}">
+      <div class="card-panel-header">
+        <div class="card-panel-accent" style="background:${color}"></div>
+        <div>
+          <div class="card-panel-name" style="color:${color}">💳 ${cardNames[key]}</div>
+          <div class="card-panel-meta">${cfg&&cfg.closingDay?'Fecha dia '+cfg.closingDay+' · Paga dia '+cfg.payDay:''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="card-panel-total">- ${fmt(total)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--text3);">fatura ${MESES[viewM]}</div>
+        </div>
+      </div>
+      <div class="card-status-row">
+        <span class="card-status-badge ${statusBadge}">${statusText}</span>
+        <button class="card-pay-btn${paid?' unpay':''}" onclick="toggleFaturaPaid('${key}',${viewY},${viewM})">
+          ${paid?'↩ desfazer pagamento':'✓ Marcar como paga'}
+        </button>
+      </div>
+      <div class="card-fatura-info">
+        <div class="cfi">
+          <div class="cfi-lbl">Fatura ${MESES[viewM]}</div>
+          <div class="cfi-val" style="color:${color}">- ${fmt(total)}</div>
+        </div>
+        <div class="cfi">
+          <div class="cfi-lbl">Próxima fatura</div>
+          <div class="cfi-val" style="color:var(--blue-text)">- ${fmt(nextTotal)}</div>
+        </div>
+        <div class="cfi">
+          <div class="cfi-lbl">Nº de compras</div>
+          <div class="cfi-val">${currentItems.length} ${currentItems.length===1?'compra':'compras'}</div>
+        </div>
+      </div>
+      <div class="card-section-label">Compras nesta fatura</div>
+      <div class="ilist" style="border-radius:0;border:none;border-top:none;">${itemsHtml}</div>
+      ${nextHtml?`<div class="next-fatura-strip">
+        <div class="nfs-lbl">📅 Próxima fatura — ${MESES[nextM]} ${nextY}</div>
+        ${nextHtml}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
 function renderAll(){
   updateNav();renderSummary();renderQuick();renderDetail();
   if(curTab==='charts')setTimeout(renderCharts,60);
   if(curTab==='annual')setTimeout(renderAnnual,60);
   if(curTab==='invest'){renderInvStats();setTimeout(renderInvChart,60);}
+  if(curTab==='cards')renderCards();
 }
 
 document.addEventListener('keydown',e=>{
