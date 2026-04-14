@@ -966,20 +966,22 @@ function billMonth(paymentKey, dateStr){
   const cfg=CARD_CONFIG[paymentKey];
   if(!cfg||cfg.closingDay===null)return null;
   const[y,m,d]=dateStr.split('-').map(Number);
-  if(d>cfg.closingDay){
+  if(d>=cfg.closingDay){
     const nm=m===12?1:m+1, ny=m===12?y+1:y;
     return ny+'-'+String(nm).padStart(2,'0');
   }
   return y+'-'+String(m).padStart(2,'0');
 }
 
-// Texto amigável: "Fatura Abril/25 · paga dia 10"
+// Texto amigável: "Fatura Abril/25 · paga dia 10 · (10/Mar → 09/Abr)"
 function billMonthLabel(paymentKey, dateStr){
   const cfg=CARD_CONFIG[paymentKey];
   if(!cfg||cfg.closingDay===null)return null;
   const bm=billMonth(paymentKey,dateStr);
   const[y,m]=bm.split('-').map(Number);
-  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2)+(cfg.payDay?' · paga dia '+cfg.payDay:'');
+  const p=faturaPeriod(cfg.closingDay,y,m-1);
+  const periodo=`${String(p.startD).padStart(2,'0')}/${String(p.startM+1).padStart(2,'0')} → ${String(p.endD).padStart(2,'0')}/${String(p.endM+1).padStart(2,'0')}`;
+  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2)+(cfg.payDay?' · paga dia '+cfg.payDay:'')+' · '+periodo;
 }
 
 // ── CATEGORIES ─────────────────────────────────────────────────────────
@@ -1281,6 +1283,21 @@ function updateNav(){
   document.getElementById('navMonth').textContent=MESES[viewM];
   document.getElementById('navYear').textContent=viewY;
   document.getElementById('qListLbl').textContent='Lançamentos de '+MESES[viewM]+' '+viewY;
+  // Data padrão para card/variável = início do ciclo do mês atual
+  // Ciclo de viewM começa no dia closingDay do mês anterior (Black=10 como referência)
+  // Se estamos no mês atual do calendário, usa hoje; senão usa o início do ciclo
+  const isCurrentMonth=viewY===todayDate.getFullYear()&&viewM===todayDate.getMonth();
+  if(isCurrentMonth){
+    document.getElementById('qDate_card').value=todayStr();
+    document.getElementById('qDate_var').value=todayStr();
+  } else {
+    // Início do ciclo de faturamento de viewM (dia 10 do mês anterior — usando Black como base)
+    const cycleStartM=viewM-1<0?11:viewM-1;
+    const cycleStartY=viewM-1<0?viewY-1:viewY;
+    const cycleStartStr=cycleStartY+'-'+String(cycleStartM+1).padStart(2,'0')+'-10';
+    document.getElementById('qDate_card').value=cycleStartStr;
+    document.getElementById('qDate_var').value=cycleStartStr;
+  }
 }
 
 // ── TABS ───────────────────────────────────────────────────────────────
@@ -2337,12 +2354,15 @@ function goCardFatToday(){
 }
 
 // Período real de uma fatura dado o dia de fechamento
-// Fatura de Abril com closingDay=10 → 11/Mar a 10/Abr
+// Fatura de Abril com closingDay=10 → 10/Mar a 09/Abr (inclusive dia 10 já vai pro próximo)
+// Na prática: startD=closingDay do mês anterior, endD=closingDay-1 do mês atual
 function faturaPeriod(closingDay, fatY, fatM){
-  const endD=closingDay, endM=fatM, endY=fatY;
+  // end = dia (closingDay-1) do mês da fatura
+  const endD=closingDay-1, endM=fatM, endY=fatY;
+  // start = dia closingDay do mês anterior
   let startM=fatM-1, startY=fatY;
   if(startM<0){startM=11;startY--;}
-  const startD=closingDay+1;
+  const startD=closingDay;
   return{startY,startM,startD,endY,endM,endD};
 }
 
@@ -2391,7 +2411,6 @@ function renderCards(){
     const cd=cfg.closingDay;
     const p=faturaPeriod(cd,cardFatY,cardFatM);
     const periodLabel=`${String(p.startD).padStart(2,'0')}/${String(p.startM+1).padStart(2,'0')} → ${String(p.endD).padStart(2,'0')}/${String(p.endM+1).padStart(2,'0')}`;
-
     const parcelas=activeCards(cardFatY,cardFatM).filter(c=>(c.payment||'black')===key);
     const variaveis=varItemsInFatura(key,cd,cardFatY,cardFatM);
     const totalParcelas=parcelas.reduce((s,x)=>s+x.value,0);
