@@ -585,6 +585,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
         </div>
         <!-- Preview da fatura -->
         <div id="cardFaturaPreview" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);"></div>
+        <div id="cardDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
         <!-- Cartão usado -->
         <div style="margin-bottom:10px;">
           <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
@@ -637,6 +638,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
           <div class="qf"><label>Valor R$</label><input type="number" id="qVal_var" step="0.01" min="0" placeholder="0,00"></div>
           <div class="qf"><label>Categoria</label><select id="qCat_var"></select></div>
         </div>
+        <div id="varDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
         <!-- Meio de pagamento -->
         <div style="margin-bottom:8px;">
           <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
@@ -1298,6 +1300,9 @@ function updateNav(){
     document.getElementById('qDate_card').value=cycleStartStr;
     document.getElementById('qDate_var').value=cycleStartStr;
   }
+  // Atualiza locks de data se algum formulário estiver aberto
+  if(qActiveType==='card') lockCardDateRange('card', qState.card.payment);
+  if(qActiveType==='var')  lockCardDateRange('var',  qState.var.payment);
 }
 
 // ── TABS ───────────────────────────────────────────────────────────────
@@ -1357,21 +1362,51 @@ const qState = {
 
 function setQType(type, btn){
   qActiveType = type;
-  // highlight button
   document.querySelectorAll('.qtype-btn').forEach(b=>b.className='qtype-btn');
   btn.classList.add('active-'+type);
-  // show/hide panels
   ['inc','fix','card','var'].forEach(t=>{
     document.getElementById('qform-'+t).style.display = t===type?'':'none';
   });
   document.getElementById('qform-hint').style.display='none';
+  // Aplica restrição de datas ao abrir o formulário
+  if(type==='card') lockCardDateRange('card', qState.card.payment);
+  if(type==='var')  lockCardDateRange('var',  qState.var.payment);
 }
 
 function setPayFor(type, val, btn){
   qState[type].payment = val;
   document.querySelectorAll('#qPayBtns_'+type+' .pay-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(type==='card') updateCardFaturaPreview();
+  if(type==='card'){updateCardFaturaPreview();lockCardDateRange('card',val);}
+  if(type==='var'){lockCardDateRange('var',val);}
+}
+
+// Trava o campo de data dentro do ciclo de faturamento do cartão selecionado
+function lockCardDateRange(type, payKey){
+  const dateId = type==='card'?'qDate_card':'qDate_var';
+  const el = document.getElementById(dateId);
+  const hintId = type==='card'?'cardDateHint':'varDateHint';
+  const hint = document.getElementById(hintId);
+  const cfg = CARD_CONFIG[payKey];
+  if(!cfg||cfg.closingDay===null){
+    // Débito/Pix — sem restrição
+    el.removeAttribute('min');el.removeAttribute('max');
+    if(hint)hint.textContent='';
+    return;
+  }
+  // Ciclo do viewM: de dia closingDay do mês anterior até closingDay-1 do mês atual
+  let cStartM=viewM-1,cStartY=viewY;
+  if(cStartM<0){cStartM=11;cStartY--;}
+  const minStr=cStartY+'-'+String(cStartM+1).padStart(2,'0')+'-'+String(cfg.closingDay).padStart(2,'0');
+  const maxStr=viewY+'-'+String(viewM+1).padStart(2,'0')+'-'+String(cfg.closingDay-1).padStart(2,'0');
+  el.setAttribute('min',minStr);
+  el.setAttribute('max',maxStr);
+  // Se a data atual está fora do range, corrige
+  if(el.value&&(el.value<minStr||el.value>maxStr)) el.value=minStr;
+  if(hint){
+    const fmtD=s=>{const[y,m,d]=s.split('-');return d+'/'+m+'/'+y;};
+    hint.textContent='📅 '+fmtD(minStr)+' → '+fmtD(maxStr)+' (fatura '+MESES[viewM]+')';
+  }
 }
 
 function updateCardFaturaPreview(){
