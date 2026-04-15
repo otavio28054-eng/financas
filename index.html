@@ -1383,29 +1383,21 @@ function setPayFor(type, val, btn){
 
 // Trava o campo de data dentro do ciclo de faturamento do cartão selecionado
 function lockCardDateRange(type, payKey){
+  // Bloqueio de data removido — permite datas retroativas livremente
+  // O campo de data é livre; o billMonth calcula a fatura correta automaticamente
   const dateId = type==='card'?'qDate_card':'qDate_var';
   const el = document.getElementById(dateId);
+  el.removeAttribute('min');
+  el.removeAttribute('max');
   const hintId = type==='card'?'cardDateHint':'varDateHint';
   const hint = document.getElementById(hintId);
   const cfg = CARD_CONFIG[payKey];
-  if(!cfg||cfg.closingDay===null){
-    // Débito/Pix — sem restrição
-    el.removeAttribute('min');el.removeAttribute('max');
-    if(hint)hint.textContent='';
-    return;
-  }
-  // Ciclo do viewM: de dia closingDay do mês anterior até closingDay-1 do mês atual
-  let cStartM=viewM-1,cStartY=viewY;
-  if(cStartM<0){cStartM=11;cStartY--;}
-  const minStr=cStartY+'-'+String(cStartM+1).padStart(2,'0')+'-'+String(cfg.closingDay).padStart(2,'0');
-  const maxStr=viewY+'-'+String(viewM+1).padStart(2,'0')+'-'+String(cfg.closingDay-1).padStart(2,'0');
-  el.setAttribute('min',minStr);
-  el.setAttribute('max',maxStr);
-  // Se a data atual está fora do range, corrige
-  if(el.value&&(el.value<minStr||el.value>maxStr)) el.value=minStr;
   if(hint){
-    const fmtD=s=>{const[y,m,d]=s.split('-');return d+'/'+m+'/'+y;};
-    hint.textContent='📅 '+fmtD(minStr)+' → '+fmtD(maxStr)+' (fatura '+MESES[viewM]+')';
+    if(cfg&&cfg.closingDay!==null){
+      hint.textContent='Fecha dia '+cfg.closingDay+' · paga dia '+cfg.payDay+' — qualquer data permitida';
+    } else {
+      hint.textContent='';
+    }
   }
 }
 
@@ -1647,10 +1639,12 @@ function renderDetail(){
   const{inc,fix,card}=totalsFor(viewY,viewM);
   const df=debtorFilter;
 
-  // Renda, Fixas, Cartão e barra de comprometimento SEMPRE visíveis
-  ['dIncBlock','dFixBlock','dCardBlock','dCommitWrap'].forEach(id=>{
-    document.getElementById(id).style.display='';
-  });
+  // Renda e Fixa: só aparecem no filtro "Todos" — ao filtrar por pessoa, esconde
+  const showGlobal = df==='todos';
+  document.getElementById('dIncBlock').style.display   = showGlobal?'':'none';
+  document.getElementById('dFixBlock').style.display   = showGlobal?'':'none';
+  document.getElementById('dCommitWrap').style.display = showGlobal?'':'none';
+  document.getElementById('dCardBlock').style.display  = '';
 
   // ── Income
   document.getElementById('dIncT').textContent=fmt(inc);
