@@ -585,6 +585,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
         </div>
         <!-- Preview da fatura -->
         <div id="cardFaturaPreview" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);"></div>
+        <div id="cardDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
         <!-- Cartão usado -->
         <div style="margin-bottom:10px;">
           <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
@@ -637,6 +638,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
           <div class="qf"><label>Valor R$</label><input type="number" id="qVal_var" step="0.01" min="0" placeholder="0,00"></div>
           <div class="qf"><label>Categoria</label><select id="qCat_var"></select></div>
         </div>
+        <div id="varDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
         <!-- Meio de pagamento -->
         <div style="margin-bottom:8px;">
           <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
@@ -763,7 +765,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
     <button class="mnav-btn" onclick="changeCardFat(-1)">&#8592;</button>
     <div class="mnav-center">
       <div class="mnav-month" id="cardFatLabel">—</div>
-      <div class="mnav-year" id="cardFatPeriod">—</div>
       <span class="mnav-home" onclick="goCardFatToday()">fatura atual</span>
     </div>
     <button class="mnav-btn" onclick="changeCardFat(1)">&#8594;</button>
@@ -953,7 +954,7 @@ const DEBTOR_EMOJI={'otavio':'👤','amor':'💚','chirlei':'👩','mae':'👩�
 // ── CARD BILLING CONFIG ────────────────────────────────────────────────
 // closingDay: se o dia da compra > closingDay → entra na fatura do mês seguinte
 const CARD_CONFIG={
-  black:       {closingDay:10, payDay:10},
+  black:       {closingDay:26, payDay:2},
   master:      {closingDay:4,  payDay:4},
   mercadopago: {closingDay:5,  payDay:5},
   gabi:        {closingDay:6,  payDay:6},
@@ -981,7 +982,7 @@ function billMonthLabel(paymentKey, dateStr){
   const[y,m]=bm.split('-').map(Number);
   const p=faturaPeriod(cfg.closingDay,y,m-1);
   const periodo=`${String(p.startD).padStart(2,'0')}/${String(p.startM+1).padStart(2,'0')} → ${String(p.endD).padStart(2,'0')}/${String(p.endM+1).padStart(2,'0')}`;
-  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2)+(cfg.payDay?' · paga dia '+cfg.payDay:'')+' · '+periodo;
+  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2);
 }
 
 // ── CATEGORIES ─────────────────────────────────────────────────────────
@@ -1284,7 +1285,7 @@ function updateNav(){
   document.getElementById('navYear').textContent=viewY;
   document.getElementById('qListLbl').textContent='Lançamentos de '+MESES[viewM]+' '+viewY;
   // Data padrão para card/variável = início do ciclo do mês atual
-  // Ciclo de viewM começa no dia closingDay do mês anterior (Black=10 como referência)
+  // Ciclo de viewM
   // Se estamos no mês atual do calendário, usa hoje; senão usa o início do ciclo
   const isCurrentMonth=viewY===todayDate.getFullYear()&&viewM===todayDate.getMonth();
   if(isCurrentMonth){
@@ -1395,8 +1396,7 @@ function lockCardDateRange(type, payKey){
   // Ciclo do viewM: de dia closingDay do mês anterior até closingDay-1 do mês atual
   let cStartM=viewM-1,cStartY=viewY;
   if(cStartM<0){cStartM=11;cStartY--;}
-  const minStr=cStartY+'-'+String(cStartM+1).padStart(2,'0')+'-'+String(cfg.closingDay).padStart(2,'0');
-  const maxStr=viewY+'-'+String(viewM+1).padStart(2,'0')+'-'+String(cfg.closingDay-1).padStart(2,'0');
+  // date range lock removed
   el.setAttribute('min',minStr);
   el.setAttribute('max',maxStr);
   // Se a data atual está fora do range, corrige
@@ -2467,22 +2467,19 @@ function renderCards(){
     if(paid){
       statusBadge='badge-paid';statusText='✅ Fatura paga';
     } else if(isFatAtual&&todayDay>=cd){
-      statusBadge='badge-closed';statusText='🔒 Fechada · pagar dia '+cd;
+      statusBadge='badge-closed';statusText='🔒 Fechada';
     } else if(isFatPassada){
       statusBadge='badge-closed';statusText='🔒 Fechada';
     } else {
       const daysLeft=isFatAtual?cd-todayDay:null;
       statusBadge='badge-open';
-      statusText='🟡 Aberta'+(daysLeft!==null?' · fecha em '+daysLeft+(daysLeft===1?' dia':' dias'):'');
+      statusText='🟡 Aberta';
     }
 
     cardData[key]={parcelas,variaveis,total,totalParcelas,totalVars,periodLabel,paid,statusBadge,statusText,nextTotal,nParcelas,nVars,nfM,nfY,cfg,color:cardColors[key]};
   });
 
   // Label de período no nav (referência Black)
-  const rp=faturaPeriod(10,cardFatY,cardFatM);
-  document.getElementById('cardFatPeriod').textContent=
-    `${String(rp.startD).padStart(2,'0')}/${String(rp.startM+1).padStart(2,'0')} → ${String(rp.endD).padStart(2,'0')}/${String(rp.endM+1).padStart(2,'0')}`;
 
   // Overview
   document.getElementById('cardsOverview').innerHTML=`
@@ -2577,7 +2574,7 @@ function renderCards(){
         <div class="card-panel-accent" style="background:${color}"></div>
         <div>
           <div class="card-panel-name" style="color:${color}">💳 ${cardNames[key]}</div>
-          <div class="card-panel-meta">Período: ${periodLabel} · paga dia ${cfg.payDay}</div>
+
         </div>
         <div style="text-align:right;">
           <div class="card-panel-total">- ${fmt(total)}</div>
