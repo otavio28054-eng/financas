@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -12,44 +13,45 @@ import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-ap
 import{getFirestore,doc,getDoc,setDoc,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig={
-  apiKey:"AIzaSyAGyRIz7ZYBX6CIZ_gH9mpHvYgga6wY6dY",
-  authDomain:"app-financeiro-471b3.firebaseapp.com",
-  databaseURL:"https://app-financeiro-471b3-default-rtdb.firebaseio.com",
-  projectId:"app-financeiro-471b3",
-  storageBucket:"app-financeiro-471b3.firebasestorage.app",
-  messagingSenderId:"1095639403709",
-  appId:"1:1095639403709:web:037586a078e711b2b37bd4"
+apiKey:“AIzaSyAGyRIz7ZYBX6CIZ_gH9mpHvYgga6wY6dY”,
+authDomain:“app-financeiro-471b3.firebaseapp.com”,
+databaseURL:“https://app-financeiro-471b3-default-rtdb.firebaseio.com”,
+projectId:“app-financeiro-471b3”,
+storageBucket:“app-financeiro-471b3.firebasestorage.app”,
+messagingSenderId:“1095639403709”,
+appId:“1:1095639403709:web:037586a078e711b2b37bd4”
 };
 
 // We expose firebase to window so the rest of the script can use it
 let app,db,unsubscribe;
 try{
-  app=initializeApp(firebaseConfig);
-  db=getFirestore(app);
-}catch(e){console.warn('Firebase init error',e);}
+app=initializeApp(firebaseConfig);
+db=getFirestore(app);
+}catch(e){console.warn(‘Firebase init error’,e);}
 
 window._fb={
-  async load(code){
-    if(!db)return null;
-    try{
-      const snap=await getDoc(doc(db,'users',code));
-      return snap.exists()?snap.data().payload:null;
-    }catch(e){console.warn(e);return null;}
-  },
-  async save(code,data){
-    if(!db)return;
-    try{await setDoc(doc(db,'users',code),{payload:data,updatedAt:Date.now()});}
-    catch(e){console.warn(e);}
-  },
-  listen(code,cb){
-    if(!db)return;
-    if(unsubscribe)unsubscribe();
-    unsubscribe=onSnapshot(doc(db,'users',code),snap=>{
-      if(snap.exists())cb(snap.data().payload);
-    });
-  }
+async load(code){
+if(!db)return null;
+try{
+const snap=await getDoc(doc(db,‘users’,code));
+return snap.exists()?snap.data().payload:null;
+}catch(e){console.warn(e);return null;}
+},
+async save(code,data){
+if(!db)return;
+try{await setDoc(doc(db,‘users’,code),{payload:data,updatedAt:Date.now()});}
+catch(e){console.warn(e);}
+},
+listen(code,cb){
+if(!db)return;
+if(unsubscribe)unsubscribe();
+unsubscribe=onSnapshot(doc(db,‘users’,code),snap=>{
+if(snap.exists())cb(snap.data().payload);
+});
+}
 };
 </script>
+
 <style>
 :root{
   --bg:#0d0f0e;--surface:#141714;--surface2:#1a1d1a;--border:#2a2e2a;--border2:#363b36;
@@ -437,10 +439,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
   .qitem-cat{display:none;}
 }
 </style>
+
 </head>
 <body>
 
 <!-- ── LOGIN SCREEN ── -->
+
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">minhas<span>.</span>finanças</div>
@@ -454,6 +458,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- ── SYNC BADGE ── -->
+
 <div class="sync-badge" id="syncBadge" style="display:none" onclick="logout()">
   <div class="sync-dot" id="syncDot"></div>
   <span id="syncLabel">sincronizado</span>
@@ -511,167 +516,175 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB QUICK -->
+
 <div id="tab-quick" class="tab-content active">
   <div class="card-box">
     <div class="form-title">+ novo lançamento</div>
 
-    <!-- Tipo de lançamento -->
-    <div class="qtype-row" id="qtypeRow">
-      <button class="qtype-btn" id="qtype-inc" onclick="setQType('inc',this)">
-        <div class="qtype-icon">💰</div><span class="qtype-lbl">Renda</span>
-      </button>
-      <button class="qtype-btn" id="qtype-fix" onclick="setQType('fix',this)">
-        <div class="qtype-icon">📌</div><span class="qtype-lbl">Desp. Fixa</span>
-      </button>
-      <button class="qtype-btn" id="qtype-card" onclick="setQType('card',this)">
-        <div class="qtype-icon">💳</div><span class="qtype-lbl">Cartão</span>
-      </button>
-      <button class="qtype-btn" id="qtype-var" onclick="setQType('var',this)">
-        <div class="qtype-icon">🛒</div><span class="qtype-lbl">Gasto Variável</span>
-      </button>
-    </div>
+```
+<!-- Tipo de lançamento -->
+<div class="qtype-row" id="qtypeRow">
+  <button class="qtype-btn" id="qtype-inc" onclick="setQType('inc',this)">
+    <div class="qtype-icon">💰</div><span class="qtype-lbl">Renda</span>
+  </button>
+  <button class="qtype-btn" id="qtype-fix" onclick="setQType('fix',this)">
+    <div class="qtype-icon">📌</div><span class="qtype-lbl">Desp. Fixa</span>
+  </button>
+  <button class="qtype-btn" id="qtype-card" onclick="setQType('card',this)">
+    <div class="qtype-icon">💳</div><span class="qtype-lbl">Cartão</span>
+  </button>
+  <button class="qtype-btn" id="qtype-var" onclick="setQType('var',this)">
+    <div class="qtype-icon">🛒</div><span class="qtype-lbl">Gasto Variável</span>
+  </button>
+</div>
 
-    <!-- RENDA -->
-    <div id="qform-inc" class="qform-panel" style="display:none;">
-      <div class="qsection">
-        <div class="qsection-title green">📥 Renda</div>
-        <div class="qfields cols4" style="align-items:end;">
-          <div class="qf"><label>Data</label><input type="date" id="qDate_inc"></div>
-          <div class="qf"><label>Descrição</label><input type="text" id="qName_inc" placeholder="Ex: Salário, Freela..."></div>
-          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_inc" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="qf"><label>Categoria</label><select id="qCat_inc"></select></div>
-        </div>
-        <div style="margin-bottom:8px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">De quem é a renda</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_inc">
-            <button class="pay-btn active" onclick="setDebtorFor('inc','otavio',this)">👤 Otávio</button>
-            <button class="pay-btn" onclick="setDebtorFor('inc','amor',this)">💚 Amor</button>
-            <button class="pay-btn" onclick="setDebtorFor('inc','chirlei',this)">👩 Chirlei</button>
-            <button class="pay-btn" onclick="setDebtorFor('inc','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('inc','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;">
-          <button class="btn-plus" style="width:80px;" onclick="quickAddTyped('inc')">+</button>
-        </div>
+<!-- RENDA -->
+<div id="qform-inc" class="qform-panel" style="display:none;">
+  <div class="qsection">
+    <div class="qsection-title green">📥 Renda</div>
+    <div class="qfields cols4" style="align-items:end;">
+      <div class="qf"><label>Data</label><input type="date" id="qDate_inc"></div>
+      <div class="qf"><label>Descrição</label><input type="text" id="qName_inc" placeholder="Ex: Salário, Freela..."></div>
+      <div class="qf"><label>Valor R$</label><input type="number" id="qVal_inc" step="0.01" min="0" placeholder="0,00"></div>
+      <div class="qf"><label>Categoria</label><select id="qCat_inc"></select></div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">De quem é a renda</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_inc">
+        <button class="pay-btn active" onclick="setDebtorFor('inc','otavio',this)">👤 Otávio</button>
+        <button class="pay-btn" onclick="setDebtorFor('inc','amor',this)">💚 Amor</button>
+        <button class="pay-btn" onclick="setDebtorFor('inc','chirlei',this)">👩 Chirlei</button>
+        <button class="pay-btn" onclick="setDebtorFor('inc','mae',this)">👩‍👦 Mãe</button>
+        <button class="pay-btn" onclick="setDebtorFor('inc','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
       </div>
     </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn-plus" style="width:80px;" onclick="quickAddTyped('inc')">+</button>
+    </div>
+  </div>
+</div>
 
-    <!-- DESPESA FIXA -->
-    <div id="qform-fix" class="qform-panel" style="display:none;">
-      <div class="qsection">
-        <div class="qsection-title blue">📌 Despesa Fixa (recorrente todo mês)</div>
-        <div class="qfields cols4" style="align-items:end;">
-          <div class="qf"><label>Dia do vencimento</label><input type="number" id="qDay_fix" min="1" max="31" placeholder="ex: 15"></div>
-          <div class="qf"><label>Descrição</label><input type="text" id="qName_fix" placeholder="Ex: Aluguel, Internet..."></div>
-          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_fix" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="qf"><label>Categoria</label><select id="qCat_fix"></select></div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;">
-          <button class="btn-plus blue" style="width:80px;" onclick="quickAddTyped('fix')">+</button>
-        </div>
+<!-- DESPESA FIXA -->
+<div id="qform-fix" class="qform-panel" style="display:none;">
+  <div class="qsection">
+    <div class="qsection-title blue">📌 Despesa Fixa (recorrente todo mês)</div>
+    <div class="qfields cols4" style="align-items:end;">
+      <div class="qf"><label>Dia do vencimento</label><input type="number" id="qDay_fix" min="1" max="31" placeholder="ex: 15"></div>
+      <div class="qf"><label>Descrição</label><input type="text" id="qName_fix" placeholder="Ex: Aluguel, Internet..."></div>
+      <div class="qf"><label>Valor R$</label><input type="number" id="qVal_fix" step="0.01" min="0" placeholder="0,00"></div>
+      <div class="qf"><label>Categoria</label><select id="qCat_fix"></select></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn-plus blue" style="width:80px;" onclick="quickAddTyped('fix')">+</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARTÃO DE CRÉDITO -->
+<div id="qform-card" class="qform-panel" style="display:none;">
+  <div class="qsection">
+    <div class="qsection-title red">💳 Cartão de Crédito</div>
+    <div class="qfields cols3" style="align-items:end;margin-bottom:8px;">
+      <div class="qf"><label>Data da compra</label><input type="date" id="qDate_card" oninput="updateCardFaturaPreview();calcEndMonthCard();"></div>
+      <div class="qf"><label>Descrição</label><input type="text" id="qName_card" placeholder="Ex: Passagem, Dentista..."></div>
+      <div class="qf"><label>Categoria</label><select id="qCat_card"></select></div>
+    </div>
+    <div class="qfields cols2" style="align-items:end;margin-bottom:10px;">
+      <div class="qf"><label>Valor total R$</label><input type="number" id="qTotal_card" step="0.01" min="0" placeholder="0,00" oninput="calcCardParcela()"></div>
+      <div class="qf"><label>Parcela calculada</label><input type="number" id="qVal_card" step="0.01" min="0" placeholder="—" readonly style="background:var(--surface);color:var(--green-text);border-color:var(--border);cursor:default;"></div>
+    </div>
+    <!-- Preview da fatura -->
+    <div id="cardFaturaPreview" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);"></div>
+    <div id="cardDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
+    <!-- Cartão usado -->
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_card">
+        <button class="pay-btn active" onclick="setPayFor('card','black',this)">💳 Black</button>
+        <button class="pay-btn" onclick="setPayFor('card','master',this)">💳 Master</button>
+        <button class="pay-btn" onclick="setPayFor('card','mercadopago',this)">💳 Mercado Pago</button>
+        <button class="pay-btn" onclick="setPayFor('card','gabi',this)">💳 Gabi</button>
       </div>
     </div>
-
-    <!-- CARTÃO DE CRÉDITO -->
-    <div id="qform-card" class="qform-panel" style="display:none;">
-      <div class="qsection">
-        <div class="qsection-title red">💳 Cartão de Crédito</div>
-        <div class="qfields cols4" style="align-items:end;margin-bottom:10px;">
-          <div class="qf"><label>Data da compra</label><input type="date" id="qDate_card" oninput="updateCardFaturaPreview();calcEndMonthCard();"></div>
-          <div class="qf"><label>Descrição</label><input type="text" id="qName_card" placeholder="Ex: Nike, Dentista..."></div>
-          <div class="qf"><label>Valor da parcela R$</label><input type="number" id="qVal_card" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="qf"><label>Categoria</label><select id="qCat_card"></select></div>
-        </div>
-        <!-- Preview da fatura -->
-        <div id="cardFaturaPreview" style="display:none;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);font-family:'DM Mono',monospace;font-size:.68rem;color:var(--red-text);"></div>
-        <div id="cardDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
-        <!-- Cartão usado -->
-        <div style="margin-bottom:10px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Qual cartão</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_card">
-            <button class="pay-btn active" onclick="setPayFor('card','black',this)">💳 Black</button>
-            <button class="pay-btn" onclick="setPayFor('card','master',this)">💳 Master</button>
-            <button class="pay-btn" onclick="setPayFor('card','mercadopago',this)">💳 Mercado Pago</button>
-            <button class="pay-btn" onclick="setPayFor('card','gabi',this)">💳 Gabi</button>
-          </div>
-        </div>
-        <!-- Quem gastou -->
-        <div style="margin-bottom:10px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_card">
-            <button class="pay-btn active" onclick="setDebtorFor('card','otavio',this)">👤 Otávio</button>
-            <button class="pay-btn" onclick="setDebtorFor('card','amor',this)">💚 Amor</button>
-            <button class="pay-btn" onclick="setDebtorFor('card','chirlei',this)">👩 Chirlei</button>
-            <button class="pay-btn" onclick="setDebtorFor('card','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('card','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
-          </div>
-        </div>
-        <!-- Parcelas -->
-        <div style="margin-bottom:10px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Parcelamento</div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <button class="pay-btn active" id="qCardTipo_fixa" onclick="setCardTipo('fixa',this)">🔄 Fixa mensal</button>
-            <button class="pay-btn" id="qCardTipo_par" onclick="setCardTipo('par',this)">🗓️ Parcelado</button>
-          </div>
-          <div id="qParFields" style="display:none;">
-            <div class="qfields cols2" style="margin-bottom:6px;">
-              <div class="qf"><label>Parcela atual (ex: 1)</label><input type="number" id="qPA_card" min="1" placeholder="1" oninput="calcEndMonthCard()"></div>
-              <div class="qf"><label>Total de parcelas (ex: 12)</label><input type="number" id="qPT_card" min="1" placeholder="12" oninput="calcEndMonthCard()"></div>
-            </div>
-            <div class="par-info" id="parInfo_card"></div>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;">
-          <button class="btn-plus red" style="width:80px;" onclick="quickAddTyped('card')">+</button>
-        </div>
+    <!-- Quem gastou -->
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_card">
+        <button class="pay-btn active" onclick="setDebtorFor('card','otavio',this)">👤 Otávio</button>
+        <button class="pay-btn" onclick="setDebtorFor('card','amor',this)">💚 Amor</button>
+        <button class="pay-btn" onclick="setDebtorFor('card','chirlei',this)">👩 Chirlei</button>
+        <button class="pay-btn" onclick="setDebtorFor('card','mae',this)">👩‍👦 Mãe</button>
+        <button class="pay-btn" onclick="setDebtorFor('card','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
       </div>
     </div>
-
-    <!-- GASTO VARIÁVEL -->
-    <div id="qform-var" class="qform-panel" style="display:none;">
-      <div class="qsection">
-        <div class="qsection-title amber">🛒 Gasto Variável</div>
-        <div class="qfields cols4" style="align-items:end;">
-          <div class="qf"><label>Data</label><input type="date" id="qDate_var"></div>
-          <div class="qf"><label>Descrição</label><input type="text" id="qName_var" placeholder="Ex: iFood, Gasolina..."></div>
-          <div class="qf"><label>Valor R$</label><input type="number" id="qVal_var" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="qf"><label>Categoria</label><select id="qCat_var"></select></div>
+    <!-- Parcelas -->
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Parcelamento</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="pay-btn active" id="qCardTipo_fixa" onclick="setCardTipo('fixa',this)">🔄 Fixa mensal</button>
+        <button class="pay-btn" id="qCardTipo_par" onclick="setCardTipo('par',this)">🗓️ Parcelado</button>
+      </div>
+      <div id="qParFields" style="display:none;">
+        <div class="qfields cols2" style="margin-bottom:6px;">
+          <div class="qf"><label>Parcela atual (ex: 1)</label><input type="number" id="qPA_card" min="1" placeholder="1" oninput="calcEndMonthCard()"></div>
+          <div class="qf"><label>Total de parcelas (ex: 12)</label><input type="number" id="qPT_card" min="1" placeholder="12" oninput="calcCardParcela()"></div>
         </div>
-        <div id="varDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
-        <!-- Meio de pagamento -->
-        <div style="margin-bottom:8px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_var">
-            <button class="pay-btn active" onclick="setPayFor('var','black',this)">💳 Black</button>
-            <button class="pay-btn" onclick="setPayFor('var','master',this)">💳 Master</button>
-            <button class="pay-btn" onclick="setPayFor('var','mercadopago',this)">💳 Mercado Pago</button>
-            <button class="pay-btn" onclick="setPayFor('var','debito',this)">🏦 Débito</button>
-            <button class="pay-btn" onclick="setPayFor('var','pix',this)">⚡ Pix</button>
-            <button class="pay-btn" onclick="setPayFor('var','gabi',this)">💳 Gabi</button>
-          </div>
-        </div>
-        <!-- Quem gastou -->
-        <div style="margin-bottom:8px;">
-          <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_var">
-            <button class="pay-btn active" onclick="setDebtorFor('var','otavio',this)">👤 Otávio</button>
-            <button class="pay-btn" onclick="setDebtorFor('var','amor',this)">💚 Amor</button>
-            <button class="pay-btn" onclick="setDebtorFor('var','chirlei',this)">👩 Chirlei</button>
-            <button class="pay-btn" onclick="setDebtorFor('var','mae',this)">👩‍👦 Mãe</button>
-            <button class="pay-btn" onclick="setDebtorFor('var','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;">
-          <button class="btn-plus amber" style="width:80px;" onclick="quickAddTyped('var')">+</button>
-        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--green-text);margin-top:4px;min-height:16px;" id="cardParcelaHint"></div>
+        <div class="par-info" id="parInfo_card"></div>
       </div>
     </div>
-
-    <!-- Estado inicial: orientação -->
-    <div id="qform-hint" style="padding:.8rem 0;text-align:center;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text3);">
-      ↑ Selecione o tipo de lançamento acima
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn-plus red" style="width:80px;" onclick="quickAddTyped('card')">+</button>
     </div>
+  </div>
+</div>
+
+<!-- GASTO VARIÁVEL -->
+<div id="qform-var" class="qform-panel" style="display:none;">
+  <div class="qsection">
+    <div class="qsection-title amber">🛒 Gasto Variável</div>
+    <div class="qfields cols4" style="align-items:end;">
+      <div class="qf"><label>Data</label><input type="date" id="qDate_var"></div>
+      <div class="qf"><label>Descrição</label><input type="text" id="qName_var" placeholder="Ex: iFood, Gasolina..."></div>
+      <div class="qf"><label>Valor R$</label><input type="number" id="qVal_var" step="0.01" min="0" placeholder="0,00"></div>
+      <div class="qf"><label>Categoria</label><select id="qCat_var"></select></div>
+    </div>
+    <div id="varDateHint" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);margin-bottom:8px;"></div>
+    <!-- Meio de pagamento -->
+    <div style="margin-bottom:8px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Meio de pagamento</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qPayBtns_var">
+        <button class="pay-btn active" onclick="setPayFor('var','black',this)">💳 Black</button>
+        <button class="pay-btn" onclick="setPayFor('var','master',this)">💳 Master</button>
+        <button class="pay-btn" onclick="setPayFor('var','mercadopago',this)">💳 Mercado Pago</button>
+        <button class="pay-btn" onclick="setPayFor('var','debito',this)">🏦 Débito</button>
+        <button class="pay-btn" onclick="setPayFor('var','pix',this)">⚡ Pix</button>
+        <button class="pay-btn" onclick="setPayFor('var','gabi',this)">💳 Gabi</button>
+      </div>
+    </div>
+    <!-- Quem gastou -->
+    <div style="margin-bottom:8px;">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem gastou</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="qDebtorBtns_var">
+        <button class="pay-btn active" onclick="setDebtorFor('var','otavio',this)">👤 Otávio</button>
+        <button class="pay-btn" onclick="setDebtorFor('var','amor',this)">💚 Amor</button>
+        <button class="pay-btn" onclick="setDebtorFor('var','chirlei',this)">👩 Chirlei</button>
+        <button class="pay-btn" onclick="setDebtorFor('var','mae',this)">👩‍👦 Mãe</button>
+        <button class="pay-btn" onclick="setDebtorFor('var','dividido',this)">🤝 Dividido (½ eu + ½ Amor)</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn-plus amber" style="width:80px;" onclick="quickAddTyped('var')">+</button>
+    </div>
+  </div>
+</div>
+
+<!-- Estado inicial: orientação -->
+<div id="qform-hint" style="padding:.8rem 0;text-align:center;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text3);">
+  ↑ Selecione o tipo de lançamento acima
+</div>
+```
+
   </div>
   <div class="list-lbl" id="qListLbl">Lançamentos de —</div>
   <!-- Filtro de tipo -->
@@ -686,6 +699,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB DETAIL -->
+
 <div id="tab-detail" class="tab-content">
   <!-- Filtro de devedor -->
   <div class="debtor-filter-bar">
@@ -740,6 +754,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB CHARTS -->
+
 <div id="tab-charts" class="tab-content">
   <div class="charts-grid">
     <div class="ccrd">
@@ -759,12 +774,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB CARDS -->
+
 <div id="tab-cards" class="tab-content">
   <!-- Navegação própria por fatura -->
   <div class="month-nav" style="margin-bottom:.8rem;">
     <button class="mnav-btn" onclick="changeCardFat(-1)">&#8592;</button>
     <div class="mnav-center">
       <div class="mnav-month" id="cardFatLabel">—</div>
+      <div class="mnav-year" id="cardFatPeriod">—</div>
       <span class="mnav-home" onclick="goCardFatToday()">fatura atual</span>
     </div>
     <button class="mnav-btn" onclick="changeCardFat(1)">&#8594;</button>
@@ -774,6 +791,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB ANNUAL -->
+
 <div id="tab-annual" class="tab-content">
   <div class="year-nav">
     <button class="year-nav-btn" onclick="changeYear(-1)">&#8592;</button>
@@ -788,6 +806,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- TAB INVEST -->
+
 <div id="tab-invest" class="tab-content">
   <div class="inv-stats">
     <div class="iscard"><div class="iscard-lbl">Total investido</div><div class="iscard-val" id="invTot">R$ 0,00</div><div class="iscard-sub" id="invCnt">0 aportes</div></div>
@@ -823,6 +842,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div>
 
 <!-- GOAL MODAL -->
+
 <div class="overlay" id="goalOverlay" onclick="if(event.target===this)closeGoalModal()">
   <div class="modal">
     <div class="modal-title">Nova meta de investimento</div>
@@ -865,82 +885,86 @@ header{display:flex;align-items:center;justify-content:space-between;padding:1.5
 </div><!-- /app -->
 
 <!-- MODAL -->
+
 <div class="overlay" id="overlay" onclick="closeBg(event)">
   <div class="modal">
     <div class="modal-title" id="mTitle">Editar lançamento</div>
 
-    <!-- Tipo de lançamento -->
-    <div class="field" id="mTypeRow">
-      <label>Tipo de lançamento</label>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;">
-        <button type="button" class="pay-btn" id="mTypeBtn_income"  onclick="setModalType('income',this)">💰 Renda</button>
-        <button type="button" class="pay-btn" id="mTypeBtn_fixed"   onclick="setModalType('fixed',this)">📌 Fixa</button>
-        <button type="button" class="pay-btn" id="mTypeBtn_card"    onclick="setModalType('card',this)">💳 Cartão</button>
-        <button type="button" class="pay-btn" id="mTypeBtn_variable" onclick="setModalType('variable',this)">🛒 Variável</button>
-      </div>
+```
+<!-- Tipo de lançamento -->
+<div class="field" id="mTypeRow">
+  <label>Tipo de lançamento</label>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;">
+    <button type="button" class="pay-btn" id="mTypeBtn_income"  onclick="setModalType('income',this)">💰 Renda</button>
+    <button type="button" class="pay-btn" id="mTypeBtn_fixed"   onclick="setModalType('fixed',this)">📌 Fixa</button>
+    <button type="button" class="pay-btn" id="mTypeBtn_card"    onclick="setModalType('card',this)">💳 Cartão</button>
+    <button type="button" class="pay-btn" id="mTypeBtn_variable" onclick="setModalType('variable',this)">🛒 Variável</button>
+  </div>
+</div>
+
+<!-- Campos comuns -->
+<div class="f2" style="margin-top:.6rem;">
+  <div class="field"><label>Descrição</label><input type="text" id="fName" placeholder="Nome"></div>
+  <div class="field"><label>Valor R$</label><input type="number" id="fVal" step="0.01" min="0"></div>
+</div>
+
+<!-- Data (renda, variável) -->
+<div class="field" id="fDateW"><label>Data</label><input type="date" id="fDate"></div>
+
+<!-- Dia vencimento (fixa) -->
+<div class="field" id="fDayW" style="display:none;"><label>Dia vencimento</label><input type="number" id="fDay" min="1" max="31" placeholder="—"></div>
+
+<!-- Categoria -->
+<div class="field" id="fCatW"><label>Categoria</label><select id="fCat"></select></div>
+
+<!-- Cartão: data compra + tipo + parcelas -->
+<div id="mCardFields" style="display:none;">
+  <div class="field"><label>Data da compra</label><input type="date" id="fDateCard" oninput="calcModalEnd()"></div>
+  <div class="field">
+    <label>Tipo</label>
+    <div style="display:flex;gap:6px;margin-top:4px;">
+      <button type="button" class="pay-btn active" id="mTipoBtn_fixa"      onclick="setModalTipo('fixa',this)">🔄 Fixa mensal</button>
+      <button type="button" class="pay-btn"        id="mTipoBtn_parcelada" onclick="setModalTipo('parcelada',this)">🗓️ Parcelada</button>
     </div>
+  </div>
+  <div class="f2" id="mParRow" style="display:none;">
+    <div class="field"><label>Parcela atual</label><input type="number" id="fPA" min="1" oninput="calcModalEnd()"></div>
+    <div class="field"><label>Total parcelas</label><input type="number" id="fPT" min="1" oninput="calcModalEnd()"></div>
+  </div>
+  <div class="par-info" id="mParInfo" style="margin-bottom:.5rem;"></div>
+</div>
 
-    <!-- Campos comuns -->
-    <div class="f2" style="margin-top:.6rem;">
-      <div class="field"><label>Descrição</label><input type="text" id="fName" placeholder="Nome"></div>
-      <div class="field"><label>Valor R$</label><input type="number" id="fVal" step="0.01" min="0"></div>
-    </div>
+<!-- Cartão usado (cartão e variável com cartão) -->
+<div id="fPayW" style="display:none;margin-bottom:.8rem;">
+  <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;" id="fPayLabel">Cartão</div>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fPayBtns">
+    <button type="button" class="pay-btn" onclick="setModalPayment('black',this)">💳 Black</button>
+    <button type="button" class="pay-btn" onclick="setModalPayment('master',this)">💳 Master</button>
+    <button type="button" class="pay-btn" onclick="setModalPayment('mercadopago',this)">💳 Mercado Pago</button>
+    <button type="button" class="pay-btn" onclick="setModalPayment('debito',this)">🏦 Débito</button>
+    <button type="button" class="pay-btn" onclick="setModalPayment('pix',this)">⚡ Pix</button>
+    <button type="button" class="pay-btn" onclick="setModalPayment('gabi',this)">💳 Gabi</button>
+  </div>
+</div>
 
-    <!-- Data (renda, variável) -->
-    <div class="field" id="fDateW"><label>Data</label><input type="date" id="fDate"></div>
+<!-- Quem pagou -->
+<div id="fDebtorW" style="display:none;margin-bottom:.8rem;">
+  <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem pagou</div>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fDebtorBtns">
+    <button type="button" class="pay-btn" onclick="setModalDebtor('otavio',this)">👤 Otávio</button>
+    <button type="button" class="pay-btn" onclick="setModalDebtor('amor',this)">💚 Amor</button>
+    <button type="button" class="pay-btn" onclick="setModalDebtor('chirlei',this)">👩 Chirlei</button>
+    <button type="button" class="pay-btn" onclick="setModalDebtor('mae',this)">👩‍👦 Mãe</button>
+    <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido</button>
+  </div>
+</div>
 
-    <!-- Dia vencimento (fixa) -->
-    <div class="field" id="fDayW" style="display:none;"><label>Dia vencimento</label><input type="number" id="fDay" min="1" max="31" placeholder="—"></div>
+<div class="modal-acts">
+  <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+  <button class="btn-save" onclick="saveModal()">Salvar</button>
+</div>
+```
 
-    <!-- Categoria -->
-    <div class="field" id="fCatW"><label>Categoria</label><select id="fCat"></select></div>
-
-    <!-- Cartão: data compra + tipo + parcelas -->
-    <div id="mCardFields" style="display:none;">
-      <div class="field"><label>Data da compra</label><input type="date" id="fDateCard" oninput="calcModalEnd()"></div>
-      <div class="field">
-        <label>Tipo</label>
-        <div style="display:flex;gap:6px;margin-top:4px;">
-          <button type="button" class="pay-btn active" id="mTipoBtn_fixa"      onclick="setModalTipo('fixa',this)">🔄 Fixa mensal</button>
-          <button type="button" class="pay-btn"        id="mTipoBtn_parcelada" onclick="setModalTipo('parcelada',this)">🗓️ Parcelada</button>
-        </div>
-      </div>
-      <div class="f2" id="mParRow" style="display:none;">
-        <div class="field"><label>Parcela atual</label><input type="number" id="fPA" min="1" oninput="calcModalEnd()"></div>
-        <div class="field"><label>Total parcelas</label><input type="number" id="fPT" min="1" oninput="calcModalEnd()"></div>
-      </div>
-      <div class="par-info" id="mParInfo" style="margin-bottom:.5rem;"></div>
-    </div>
-
-    <!-- Cartão usado (cartão e variável com cartão) -->
-    <div id="fPayW" style="display:none;margin-bottom:.8rem;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;" id="fPayLabel">Cartão</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fPayBtns">
-        <button type="button" class="pay-btn" onclick="setModalPayment('black',this)">💳 Black</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('master',this)">💳 Master</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('mercadopago',this)">💳 Mercado Pago</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('debito',this)">🏦 Débito</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('pix',this)">⚡ Pix</button>
-        <button type="button" class="pay-btn" onclick="setModalPayment('gabi',this)">💳 Gabi</button>
-      </div>
-    </div>
-
-    <!-- Quem pagou -->
-    <div id="fDebtorW" style="display:none;margin-bottom:.8rem;">
-      <div style="font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;">Quem pagou</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;" id="fDebtorBtns">
-        <button type="button" class="pay-btn" onclick="setModalDebtor('otavio',this)">👤 Otávio</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('amor',this)">💚 Amor</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('chirlei',this)">👩 Chirlei</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('mae',this)">👩‍👦 Mãe</button>
-        <button type="button" class="pay-btn" onclick="setModalDebtor('dividido',this)">🤝 Dividido</button>
-      </div>
-    </div>
-
-    <div class="modal-acts">
-      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-save" onclick="saveModal()">Salvar</button>
-    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -954,7 +978,7 @@ const DEBTOR_EMOJI={'otavio':'👤','amor':'💚','chirlei':'👩','mae':'👩�
 // ── CARD BILLING CONFIG ────────────────────────────────────────────────
 // closingDay: se o dia da compra > closingDay → entra na fatura do mês seguinte
 const CARD_CONFIG={
-  black:       {closingDay:26, payDay:2},
+  black:       {closingDay:10, payDay:10},
   master:      {closingDay:4,  payDay:4},
   mercadopago: {closingDay:5,  payDay:5},
   gabi:        {closingDay:6,  payDay:6},
@@ -982,7 +1006,7 @@ function billMonthLabel(paymentKey, dateStr){
   const[y,m]=bm.split('-').map(Number);
   const p=faturaPeriod(cfg.closingDay,y,m-1);
   const periodo=`${String(p.startD).padStart(2,'0')}/${String(p.startM+1).padStart(2,'0')} → ${String(p.endD).padStart(2,'0')}/${String(p.endM+1).padStart(2,'0')}`;
-  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2);
+  return'📅 Fatura '+MESES[m-1]+'/'+String(y).slice(2)+(cfg.payDay?' · paga dia '+cfg.payDay:'')+' · '+periodo;
 }
 
 // ── CATEGORIES ─────────────────────────────────────────────────────────
@@ -1285,7 +1309,7 @@ function updateNav(){
   document.getElementById('navYear').textContent=viewY;
   document.getElementById('qListLbl').textContent='Lançamentos de '+MESES[viewM]+' '+viewY;
   // Data padrão para card/variável = início do ciclo do mês atual
-  // Ciclo de viewM
+  // Ciclo de viewM começa no dia closingDay do mês anterior (Black=10 como referência)
   // Se estamos no mês atual do calendário, usa hoje; senão usa o início do ciclo
   const isCurrentMonth=viewY===todayDate.getFullYear()&&viewM===todayDate.getMonth();
   if(isCurrentMonth){
@@ -1396,7 +1420,8 @@ function lockCardDateRange(type, payKey){
   // Ciclo do viewM: de dia closingDay do mês anterior até closingDay-1 do mês atual
   let cStartM=viewM-1,cStartY=viewY;
   if(cStartM<0){cStartM=11;cStartY--;}
-  // date range lock removed
+  const minStr=cStartY+'-'+String(cStartM+1).padStart(2,'0')+'-'+String(cfg.closingDay).padStart(2,'0');
+  const maxStr=viewY+'-'+String(viewM+1).padStart(2,'0')+'-'+String(cfg.closingDay-1).padStart(2,'0');
   el.setAttribute('min',minStr);
   el.setAttribute('max',maxStr);
   // Se a data atual está fora do range, corrige
@@ -1421,14 +1446,50 @@ function setDebtorFor(type, val, btn){
   qState[type].debtor = val;
   document.querySelectorAll('#qDebtorBtns_'+type+' .pay-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  if(type==='card') calcCardParcela();
 }
 function setCardTipo(tipo, btn){
   qState.card.tipo = tipo;
   document.querySelectorAll('#qCardTipo_fixa, #qCardTipo_par').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('qParFields').style.display = tipo==='par' ? '' : 'none';
-  if(tipo==='par') calcEndMonthCard();
+  // For fixa, total = value directly (copy total to parcela)
+  if(tipo==='fixa'){
+    const total=parseFloat(document.getElementById('qTotal_card').value)||0;
+    const isDividido=qState.card.debtor==='dividido';
+    document.getElementById('qVal_card').value = total>0 ? (isDividido?(total/2).toFixed(2):total.toFixed(2)) : '';
+    const hint=document.getElementById('cardParcelaHint');
+    if(hint) hint.textContent = total>0&&isDividido ? fmt(total)+' ÷ 2 = '+fmt(total/2)+' pra cada' : '';
+  } else {
+    calcCardParcela();
+  }
   updateCardFaturaPreview();
+}
+
+function calcCardParcela(){
+  const total = parseFloat(document.getElementById('qTotal_card').value)||0;
+  const pt    = parseInt(document.getElementById('qPT_card').value)||0;
+  const isDividido = qState.card.debtor === 'dividido';
+  const valEl = document.getElementById('qVal_card');
+  if(total > 0 && pt > 0){
+    const parcelaBruta = total / pt;
+    const parcela = isDividido ? parseFloat((parcelaBruta / 2).toFixed(2)) : parseFloat(parcelaBruta.toFixed(2));
+    valEl.value = parcela.toFixed(2);
+    // Update label hint
+    const hint = document.getElementById('cardParcelaHint');
+    if(hint){
+      if(isDividido){
+        hint.textContent = fmt(total)+' ÷ '+pt+'x ÷ 2 = '+fmt(parcela)+' pra cada';
+      } else {
+        hint.textContent = fmt(total)+' ÷ '+pt+'x = '+fmt(parcela)+' por parcela';
+      }
+    }
+  } else {
+    valEl.value = '';
+    const hint = document.getElementById('cardParcelaHint');
+    if(hint) hint.textContent = '';
+  }
+  calcEndMonthCard();
 }
 
 function calcEndMonthCard(){
@@ -1531,7 +1592,9 @@ function quickAddTyped(type){
       }
     }
     document.getElementById('qName_card').value='';
+    document.getElementById('qTotal_card').value='';
     document.getElementById('qVal_card').value='';
+    const hint=document.getElementById('cardParcelaHint');if(hint)hint.textContent='';
   }
 
   else if(type==='var'){
@@ -1705,7 +1768,7 @@ function renderDetail(){
       const groupItems=groups[key];
       const groupTotal=groupItems.reduce((s,x)=>s+x.value,0);
       const cfg=CARD_CONFIG[key];
-      const closingInfo='';
+      const closingInfo=cfg&&cfg.closingDay?` · fecha dia ${cfg.closingDay} · paga dia ${cfg.payDay}`:'';
       html+=`<div style="margin-bottom:.5rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:.45rem .95rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px 8px 0 0;">
           <span style="font-family:'DM Mono',monospace;font-size:.62rem;font-weight:600;color:${cardColors[key]};">${cardNames[key]}</span>
@@ -2467,19 +2530,22 @@ function renderCards(){
     if(paid){
       statusBadge='badge-paid';statusText='✅ Fatura paga';
     } else if(isFatAtual&&todayDay>=cd){
-      statusBadge='badge-closed';statusText='🔒 Fechada';
+      statusBadge='badge-closed';statusText='🔒 Fechada · pagar dia '+cd;
     } else if(isFatPassada){
       statusBadge='badge-closed';statusText='🔒 Fechada';
     } else {
       const daysLeft=isFatAtual?cd-todayDay:null;
       statusBadge='badge-open';
-      statusText='🟡 Aberta';
+      statusText='🟡 Aberta'+(daysLeft!==null?' · fecha em '+daysLeft+(daysLeft===1?' dia':' dias'):'');
     }
 
     cardData[key]={parcelas,variaveis,total,totalParcelas,totalVars,periodLabel,paid,statusBadge,statusText,nextTotal,nParcelas,nVars,nfM,nfY,cfg,color:cardColors[key]};
   });
 
   // Label de período no nav (referência Black)
+  const rp=faturaPeriod(10,cardFatY,cardFatM);
+  document.getElementById('cardFatPeriod').textContent=
+    `${String(rp.startD).padStart(2,'0')}/${String(rp.startM+1).padStart(2,'0')} → ${String(rp.endD).padStart(2,'0')}/${String(rp.endM+1).padStart(2,'0')}`;
 
   // Overview
   document.getElementById('cardsOverview').innerHTML=`
@@ -2494,7 +2560,7 @@ function renderCards(){
         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${color};border-radius:3px 3px 0 0;"></div>
         <div class="cov-lbl">💳 ${cardNames[key]}</div>
         <div class="cov-val" style="color:${color}">${fmt(total)}</div>
-        <div class="cov-sub">${paid?'✅ paga':'em aberto'}</div>
+        <div class="cov-sub">${paid?'✅ paga':'fecha dia '+cfg.closingDay}</div>
       </div>`;
     }).join('')}
   `;
@@ -2574,7 +2640,7 @@ function renderCards(){
         <div class="card-panel-accent" style="background:${color}"></div>
         <div>
           <div class="card-panel-name" style="color:${color}">💳 ${cardNames[key]}</div>
-
+          <div class="card-panel-meta">Período: ${periodLabel} · paga dia ${cfg.payDay}</div>
         </div>
         <div style="text-align:right;">
           <div class="card-panel-total">- ${fmt(total)}</div>
@@ -2636,5 +2702,6 @@ document.addEventListener('keydown',e=>{
 });
 document.getElementById('iVal').addEventListener('keydown',e=>{if(e.key==='Enter')addInv();});
 </script>
+
 </body>
 </html>
