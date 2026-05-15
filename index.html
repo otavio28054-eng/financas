@@ -1568,10 +1568,10 @@ function quickAddTyped(type){
       const startMonth=mKey(startY,startM);
       const faturaLabel=billMonthLabel(st.payment,dateCard)||'';
       if(st.debtor==='dividido'){
-        const half=parseFloat((value/2).toFixed(2));
-        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
-        D.card.push({id:uid(),name,value:half,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
-        toast('Parcela dividida! '+fmt(half)+' pra cada. '+faturaLabel);
+        // value já é a parcela por pessoa (calculada por calcCardParcela: total ÷ pt ÷ 2)
+        D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
+        D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
+        toast('Parcela dividida! '+fmt(value)+' pra cada. '+faturaLabel);
       } else {
         D.card.push({id:uid(),name,value,cat,tipo:'parcelada',pa:1,pt,startMonth,payment:st.payment,debtor:st.debtor,_addedTs:Date.now()});
         toast((pa>1?'Parcela retroativa! ':'Parcela lançada! ')+'1/'+pt+' · '+faturaLabel);
@@ -1582,10 +1582,10 @@ function quickAddTyped(type){
     } else {
       // Fixa mensal — não tem fechamento relevante, começa no mês atual
       if(st.debtor==='dividido'){
-        const half=parseFloat((value/2).toFixed(2));
-        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
-        D.card.push({id:uid(),name,value:half,cat,tipo:'fixa',payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
-        toast('Fixa dividida! '+fmt(half)+' pra cada.');
+        // value já é o valor por pessoa (calculado por calcCardParcela: total ÷ 2)
+        D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:'otavio',dividedFrom:name,_addedTs:Date.now()});
+        D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:'dividido',dividedFrom:name,_addedTs:Date.now()});
+        toast('Fixa dividida! '+fmt(value)+' pra cada.');
       } else {
         D.card.push({id:uid(),name,value,cat,tipo:'fixa',payment:st.payment,debtor:st.debtor,_addedTs:Date.now()});
         toast('Cartão fixo adicionado!');
